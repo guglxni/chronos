@@ -1,0 +1,53 @@
+# CHRONOS .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Node.js
+node_modules/
+chronos-frontend/node_modules/
+chronos-frontend/dist/
+chronos-frontend/.cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# GitNexus / Graphify output
+.gitnexus/
+graphify-out/
+
+# Test and coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# AIDLC state (keep tracked but ignore temp files)
+aidlc-docs/**/*.tmp
+
+# OS
+Thumbs.db
