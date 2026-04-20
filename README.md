@@ -54,8 +54,9 @@ CHRONOS is an autonomous agent that **investigates data quality incidents** by r
                     ┌──────────────▼───────────────────────────────┐
                     │     INVESTIGATION ORCHESTRATOR (LangGraph)    │
                     │                                               │
-                    │  SCOPE → TEMPORAL → LINEAGE → CODE →         │
-                    │  DOWNSTREAM → AUDIT → SYNTHESIS → NOTIFY     │
+                    │  PRIOR_INV → SCOPE → TEMPORAL → LINEAGE →   │
+                    │  CODE → DOWNSTREAM → AUDIT → SYNTHESIS →     │
+                    │  NOTIFY → PERSIST_TRACE                       │
                     │                                               │
                     │  ┌────────────┐ ┌──────────┐ ┌────────────┐ │
                     │  │ OpenMeta   │ │ Graphiti  │ │ GitNexus   │ │
@@ -63,24 +64,34 @@ CHRONOS is an autonomous agent that **investigates data quality incidents** by r
                     │  └────────────┘ └──────────┘ └────────────┘ │
                     │                                               │
                     │  LLM: LiteLLM (Claude / Llama / GPT)         │
+                    │  Traces: Langfuse │ OTel: OpenLLMetry         │
                     └──────────────┬───────────────────────────────┘
                                    │
                     ┌──────────────▼───────────────────────────────┐
-                    │  REST API │ Slack Notification │ Dashboard    │
-                    └─────────────────────────────────────────────┘
+                    │  REST API │ Slack │ PROV-O │ A2A │ Dashboard │
+                    └──────────────────────────────────────────────┘
 ```
 
 ## Features
 
 ### Core (Must-Have)
 - **🎯 Event-Driven Detection** — Automatic webhook-triggered investigation on test failures
-- **🤖 7-Step Autonomous Investigation** — LangGraph state machine reasoning across 3 MCP servers
+- **🤖 10-Step Autonomous Investigation** — LangGraph state machine reasoning across 3 MCP servers
+- **💡 Self-Referential Memory** — CHRONOS learns from past investigations (Step 0: lookup, Step 9: persist)
 - **🕐 Temporal Intelligence** — Graphiti bi-temporal facts answer "what was true 48 hours ago?"
 - **💻 Code-Level Analysis** — GitNexus identifies implicated commits and code files
 - **📊 Blast Radius Assessment** — Downstream impact with business criticality (Tier-1/2/3)
 - **📋 Structured Reports** — Machine-readable incident reports with confidence scoring
 - **💬 Slack Notifications** — Rich Block Kit messages with owner tags and action buttons
 - **🖥️ React Dashboard** — Interactive lineage map, investigation replay, temporal diff
+
+### Agentic Metadata Infrastructure (Gap-Closing)
+- **🔭 Langfuse Observability** — Every investigation is a trace tree: replay, annotate, evaluate
+- **📡 OpenLLMetry** — Vendor-neutral LLM instrumentation via OpenTelemetry GenAI SemConv
+- **📄 W3C PROV-O Compliance** — One-click GDPR/SOC2-ready audit artifacts (JSON-LD/Turtle)
+- **🤝 A2A Agent Card** — Agent discovery via `/.well-known/agent-card.json`
+- **✅ DeepEval Quality Tests** — Pytest-compatible RCA accuracy regression detection
+- **📎 RAGAs Retrieval Eval** — Graphiti retrieval quality metrics (faithfulness, precision, recall)
 
 ### Enhanced (Nice-to-Have)
 - **🔗 OpenLineage Ingestion** — Richer lineage from pipeline orchestrators
@@ -127,13 +138,17 @@ open http://localhost:3000
 ```
 
 **Demo talking points:**
-1. Test fails → CHRONOS immediately starts investigating
+1. Test fails → CHRONOS checks institutional memory (Step 0 — finds 2 past incidents)
 2. Graphiti finds the schema changed 2 hours ago
 3. Upstream lineage walk pinpoints the source table
 4. GitNexus identifies the exact commit
 5. 3 Tier-1 downstream assets are at risk
-6. LLM synthesizes root cause with 92% confidence
-7. Slack notification arrives with full context in ~47 seconds
+6. LLM synthesizes root cause with 92% confidence (references past incident!)
+7. Slack notification arrives in ~47 seconds
+8. Investigation persisted to Graphiti (Step 9 — next time will be even richer)
+9. Open Langfuse: full trace tree with token counts and costs
+10. Download W3C PROV-O compliance artifact with one click
+11. Discover CHRONOS: `curl localhost:8100/.well-known/agent-card.json`
 
 ## Tech Stack
 
@@ -145,6 +160,9 @@ open http://localhost:3000
 | **Architecture KG** | [Graphify](https://github.com/safishamsi/graphify) | MIT |
 | **Agent** | [LangGraph](https://github.com/langchain-ai/langgraph) | MIT |
 | **LLM Gateway** | [LiteLLM](https://github.com/BerriAI/litellm) | MIT |
+| **Observability** | [Langfuse](https://github.com/langfuse/langfuse) + [OpenLLMetry](https://github.com/traceloop/openllmetry) | MIT / Apache 2.0 |
+| **Compliance** | [W3C PROV-O](https://github.com/trungdong/prov) + [A2A Protocol](https://github.com/a2aproject/A2A) | MIT / Apache 2.0 |
+| **Quality** | [DeepEval](https://github.com/confident-ai/deepeval) + [RAGAs](https://github.com/explodinggradients/ragas) | Apache 2.0 |
 | **Lineage Standard** | [OpenLineage](https://openlineage.io/) | Apache 2.0 |
 | **Backend** | [FastAPI](https://fastapi.tiangolo.com/) | MIT |
 | **Frontend** | React + [React Flow](https://reactflow.dev/) + Tailwind CSS | MIT |
@@ -155,39 +173,43 @@ open http://localhost:3000
 ```
 chronos/
 ├── AGENTS.md                          # AIDLC workflow rules
-├── PRD.md                             # Product Requirements Document
-├── spec.md                            # Technical Specification
+├── PRD.md                             # Product Requirements Document (v2.0)
+├── spec.md                            # Technical Specification (v2.0)
 ├── .env.example                       # Environment template
-├── docker-compose.yml                 # Full stack orchestration
+├── docker-compose.yml                 # Full stack (incl. Langfuse)
 ├── Dockerfile                         # CHRONOS server image
 ├── pyproject.toml                     # Python dependencies
 │
 ├── chronos/                           # Python backend
-│   ├── main.py                        # FastAPI entrypoint
+│   ├── main.py                        # FastAPI + OpenLLMetry init
 │   ├── config/                        # Settings + LiteLLM config
-│   ├── api/                           # REST routes + SSE
+│   ├── api/                           # REST routes + SSE + A2A
 │   ├── agent/                         # LangGraph investigation
-│   │   └── nodes/                     # One file per step
+│   │   └── nodes/                     # 10 steps (0-9)
 │   ├── mcp/                           # MCP client connections
 │   ├── ingestion/                     # Event pipelines
+│   ├── compliance/                    # W3C PROV-O generator
+│   ├── observability/                 # OpenLLMetry + OTel setup
 │   ├── notifications/                 # Slack integration
 │   ├── enrichment/                    # Graphify context
 │   ├── models/                        # Pydantic data models
-│   └── llm/                           # LiteLLM wrapper
+│   ├── llm/                           # LiteLLM wrapper
+│   └── .well-known/                   # A2A Agent Card
 │
 ├── chronos-frontend/                  # React dashboard
 │   └── src/
 │       ├── pages/                     # Dashboard, IncidentDetail
-│       ├── components/                # LineageMap, Timeline, etc.
+│       ├── components/                # LineageMap, Timeline, PROV-O DL
 │       └── hooks/                     # SSE, API hooks
 │
-├── aidlc-docs/                        # AIDLC workflow documentation
-│   ├── inception/                     # Requirements, stories, design
-│   ├── construction/                  # Unit plans, code summaries
-│   └── aidlc-state.md                 # Workflow progress tracker
+├── tests/
+│   ├── test_agent/                    # Agent unit tests
+│   └── evals/                         # DeepEval + RAGAs quality tests
 │
+├── aidlc-docs/                        # AIDLC workflow documentation
 ├── scripts/                           # Setup & demo scripts
-└── sample-dbt-project/                # Demo dbt project
+├── sample-dbt-project/                # Demo dbt project
+└── .github/workflows/eval.yml         # Quality eval CI
 ```
 
 ## Hackathon

@@ -107,3 +107,45 @@
 **US-6.1**: As Meera, I want CHRONOS to identify recurring incident patterns, so that we can invest in prevention for the most impactful areas.
 - **Acceptance**: Graphiti pattern search surfaces "3rd time this month" style insights in reports
 - **Priority**: Nice-to-Have
+
+### Epic 7: Agentic Metadata Infrastructure (F11-F18 — Gap-Closing)
+
+**US-7.1**: As Priya, I want CHRONOS to check past investigations of the same entity before starting a new one, so that I get richer context like "this happened before; last time the root cause was X."
+- **Acceptance**: Step 0 queries `chronos-investigation-traces` Graphiti group; "Related Past Incidents" section appears in report when matches exist
+- **Priority**: Must-Have
+- **Feature**: F11 (Self-Referential Memory — Gap 8)
+
+**US-7.2**: As Priya, I want each completed investigation to be persisted as a Graphiti episode, so that CHRONOS builds institutional memory over time.
+- **Acceptance**: Step 9 persists full investigation trace + per-step telemetry to Graphiti; episodes searchable by entity FQN or root cause category
+- **Priority**: Must-Have
+- **Feature**: F11 (Self-Referential Memory — Gap 8)
+
+**US-7.3**: As Meera, I want every investigation visible as a trace tree in Langfuse, so that I can replay steps, see token/cost breakdowns, and annotate failures.
+- **Acceptance**: Langfuse UI shows trace per incident (session_id = incident_id); each step is a span with duration + token count; cost per investigation computed
+- **Priority**: Must-Have
+- **Feature**: F12 (Langfuse — Gap 1)
+
+**US-7.4**: As Meera, I want to download a W3C PROV-O compliance artifact for any incident, so that our legal team has GDPR/SOC2-ready audit trails.
+- **Acceptance**: `GET /api/v1/incidents/{id}/provenance.jsonld` returns valid PROV-O JSON-LD; also supports `.ttl` (Turtle) format; maps CHRONOS Agent→Activity→Entity
+- **Priority**: Should-Have
+- **Feature**: F13 (W3C PROV-O — Gap 6)
+
+**US-7.5**: As Alex, I want other agents in our infrastructure to discover CHRONOS's capabilities programmatically, so that I can build orchestration workflows.
+- **Acceptance**: `GET /.well-known/agent-card.json` returns valid A2A Agent Card with 3 skills (investigate, blast radius, compliance report)
+- **Priority**: Should-Have
+- **Feature**: F14 (A2A Agent Card — Gap 7)
+
+**US-7.6**: As Meera, I want CHRONOS's LLM telemetry to follow OpenTelemetry GenAI SemConv, so that our existing monitoring infrastructure can ingest it.
+- **Acceptance**: OpenLLMetry Traceloop SDK initialized at app startup; `gen_ai.*` span attributes emitted for all LiteLLM calls
+- **Priority**: Nice-to-Have
+- **Feature**: F15/F16 (OpenLLMetry + OTel GenAI SemConv — Gaps 2/3)
+
+**US-7.7**: As Alex, I want CI to catch RCA quality regressions when prompts or models change, so that we don't ship worse root cause analysis silently.
+- **Acceptance**: `pytest tests/evals/` runs DeepEval G-Eval + FaithfulnessMetric on canonical demo scenario; GitHub Actions workflow on PR
+- **Priority**: Should-Have
+- **Feature**: F17 (DeepEval — Gap 4)
+
+**US-7.8**: As Meera, I want to validate that Graphiti returns the right temporal facts during investigation, so that retrieval quality is measured.
+- **Acceptance**: RAGAs context_recall > 0.8 and context_precision > 0.6 on seeded schema change scenario
+- **Priority**: Nice-to-Have
+- **Feature**: F18 (RAGAs — Gap 5)

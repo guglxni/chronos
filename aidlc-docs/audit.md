@@ -47,3 +47,22 @@
 **Context**: Units Generation — Complex system requires 6+ units with inter-service dependencies.
 
 ---
+
+## Agentic Metadata Infrastructure Upgrade (v2.0)
+**Timestamp**: 2026-04-21T01:05:00Z
+**User Input**: "CHRONOS — FOSS Additions to Close Agentic Metadata Gaps [...] Gap-to-Tool Mapping: 8 FOSS tools (Langfuse, OpenLLMetry, OTel GenAI SemConv, DeepEval, RAGAs, W3C PROV-O, A2A Protocol, Self-Referential Memory via Graphiti) — update PRD.md and spec.md with these additions"
+**AI Response**: Executed comprehensive v2.0 upgrade across all project documentation and AIDLC artifacts:
+- PRD.md updated to v2.0 (8 new features: F11-F18, updated timeline, success metrics)
+- spec.md updated to v2.0 (sections 17-24 added, 10-node state machine, new API routes, project structure)
+- requirements.md updated (FR-11 to FR-18, updated NFRs, new constraints)
+- user-stories.md updated (Epic 7 with US-7.1 to US-7.8, mapped to 3 personas)
+- application-design.md updated (architecture with observability/compliance layers, Langfuse in component inventory, 10-step flow, new design decisions)
+- units-specification.md updated (Unit 7 added, Units 1/3/5/6 extended with v2.0 files)
+- workflow-plan.md updated (7 units, updated timeline, new risk mitigations)
+- aidlc-state.md updated (v2.0 state tracking, gap-to-feature mapping, extension config)
+- .env.example updated (Langfuse, OTel, version/environment vars)
+- README.md updated (10-step architecture, agentic metadata features section, updated tech stack, expanded project structure, revised demo points)
+**Context**: v2.0 Upgrade — Integrating 8 FOSS tools to close the 7 agentic metadata gaps identified from "Is Agentic Metadata the Next Infrastructure Layer?" article.
+
+---
+

@@ -1,13 +1,14 @@
 # CHRONOS — Technical Specification
 
 **Autonomous Data Incident Root Cause Analysis Agent**
-**Version:** 1.0
+**Version:** 2.0 — Agentic Metadata Infrastructure Edition
+**Changelog:** v2.0 adds technical specs for 8 FOSS gap-closing integrations (Langfuse, OpenLLMetry, OTel GenAI, DeepEval, RAGAs, W3C PROV-O, A2A, self-referential memory)
 
 ---
 
 ## 1. System Architecture Overview
 
-CHRONOS is a Python-based autonomous agent system that integrates with OpenMetadata, Graphiti, GitNexus, and Graphify via MCP (Model Context Protocol) to perform event-driven root cause analysis of data quality incidents. The system is orchestrated via LangGraph and uses LiteLLM as a unified LLM gateway.
+CHRONOS is a Python-based autonomous agent system built as an **agentic metadata infrastructure layer**. It integrates with OpenMetadata, Graphiti, GitNexus, and Graphify via MCP (Model Context Protocol) to perform event-driven root cause analysis of data quality incidents. The system is orchestrated via LangGraph, uses LiteLLM as a unified LLM gateway, emits OpenTelemetry GenAI SemConv traces observable in Langfuse, generates W3C PROV-O compliance artifacts, and learns from its own past investigations via self-referential Graphiti memory.
 
 ### 1.1 High-Level Architecture
 
@@ -108,6 +109,8 @@ CHRONOS is a Python-based autonomous agent system that integrates with OpenMetad
 | `falkordb` | C | FalkorDB | 6379 | Graph database for Graphiti |
 | `gitnexus-mcp` | Node.js | GitNexus MCP | stdio | Code knowledge graph MCP |
 | `litellm-proxy` | Python | LiteLLM Proxy | 4000 | LLM gateway proxy |
+| `langfuse` | TypeScript | Next.js | 3001 | Agentic observability platform (self-hosted) |
+| `langfuse-db` | — | PostgreSQL 16 | 5433 | Langfuse persistence layer |
 
 ---
 
@@ -125,6 +128,10 @@ class InvestigationState(TypedDict):
     incident_id: str
     trigger_event: dict                    # Raw OpenMetadata webhook payload
     triggered_at: datetime
+
+    # Step 0: Prior Investigations (NEW — self-referential memory)
+    prior_investigations: Optional[list[dict]]  # Past investigations of same entity
+    recurrence_patterns: Optional[list[dict]]   # Pattern matches from Graphiti
 
     # Step 1: Scope
     failed_test: Optional[dict]            # Test case details from OpenMetadata
@@ -160,6 +167,11 @@ class InvestigationState(TypedDict):
     # Step 7: Synthesis
     incident_report: Optional[dict]       # Final structured report
     confidence: Optional[float]           # 0-1 confidence in root cause
+
+    # Step 8: Notify (unchanged)
+
+    # Step 9: Persist Trace (NEW — self-referential memory)
+    trace_persisted: Optional[bool]        # Whether investigation was persisted to Graphiti
 
     # Metadata
     current_step: str                      # Current step name
@@ -483,8 +495,10 @@ litellm.completion(
 # chronos/agent/graph.py
 
 from langgraph.graph import StateGraph, END
+from langfuse.callback import CallbackHandler
 from chronos.agent.state import InvestigationState
 from chronos.agent.nodes import (
+    check_prior_investigations,   # NEW — Step 0 (self-referential memory)
     scope_failure,
     temporal_diff,
     lineage_walk,
@@ -493,26 +507,31 @@ from chronos.agent.nodes import (
     audit_correlation,
     rca_synthesis,
     notify,
+    persist_investigation_trace,  # NEW — Step 9 (self-referential memory)
 )
+from chronos.config import settings
 
-def build_investigation_graph() -> StateGraph:
-    """Build the LangGraph investigation state machine."""
+def build_investigation_graph(incident_id: str) -> tuple[StateGraph, dict]:
+    """Build the LangGraph investigation state machine with Langfuse tracing."""
 
     graph = StateGraph(InvestigationState)
 
-    # Add nodes
-    graph.add_node("scope_failure", scope_failure)
-    graph.add_node("temporal_diff", temporal_diff)
-    graph.add_node("lineage_walk", lineage_walk)
-    graph.add_node("code_blast_radius", code_blast_radius)
-    graph.add_node("downstream_impact", downstream_impact)
-    graph.add_node("audit_correlation", audit_correlation)
-    graph.add_node("rca_synthesis", rca_synthesis)
-    graph.add_node("notify", notify)
+    # Add nodes (10 total: Step 0 + Steps 1-7 + Step 8 + Step 9)
+    graph.add_node("check_prior_investigations", check_prior_investigations)  # Step 0
+    graph.add_node("scope_failure", scope_failure)                            # Step 1
+    graph.add_node("temporal_diff", temporal_diff)                            # Step 2
+    graph.add_node("lineage_walk", lineage_walk)                              # Step 3
+    graph.add_node("code_blast_radius", code_blast_radius)                    # Step 4
+    graph.add_node("downstream_impact", downstream_impact)                    # Step 5
+    graph.add_node("audit_correlation", audit_correlation)                     # Step 6
+    graph.add_node("rca_synthesis", rca_synthesis)                             # Step 7
+    graph.add_node("notify", notify)                                          # Step 8
+    graph.add_node("persist_investigation_trace", persist_investigation_trace) # Step 9
 
-    # Define edges
-    graph.set_entry_point("scope_failure")
+    # Define edges (entry -> Step 0 -> Steps 1-8 -> Step 9 -> END)
+    graph.set_entry_point("check_prior_investigations")
 
+    graph.add_edge("check_prior_investigations", "scope_failure")
     graph.add_edge("scope_failure", "temporal_diff")
     graph.add_edge("temporal_diff", "lineage_walk")
     graph.add_edge("lineage_walk", "code_blast_radius")
@@ -527,9 +546,29 @@ def build_investigation_graph() -> StateGraph:
     graph.add_edge("downstream_impact", "audit_correlation")
     graph.add_edge("audit_correlation", "rca_synthesis")
     graph.add_edge("rca_synthesis", "notify")
-    graph.add_edge("notify", END)
+    graph.add_edge("notify", "persist_investigation_trace")
+    graph.add_edge("persist_investigation_trace", END)
 
-    return graph.compile()
+    compiled = graph.compile()
+
+    # Langfuse callback for automatic trace capture (optional — feature-flagged)
+    config = {}
+    if settings.LANGFUSE_ENABLED:
+        langfuse_handler = CallbackHandler(
+            public_key=settings.LANGFUSE_PUBLIC_KEY,
+            secret_key=settings.LANGFUSE_SECRET_KEY,
+            host=settings.LANGFUSE_HOST,
+            session_id=incident_id,
+            user_id="chronos-agent",
+            tags=["chronos", "rca", settings.ENVIRONMENT],
+            metadata={
+                "agent_version": settings.VERSION,
+                "trigger": "openmetadata_webhook",
+            },
+        )
+        config = {"callbacks": [langfuse_handler]}
+
+    return compiled, config
 
 
 def should_check_code(state: InvestigationState) -> bool:
@@ -1706,6 +1745,10 @@ GET    /api/v1/incidents/{id}             # Get incident detail + investigation 
 POST   /api/v1/incidents/{id}/acknowledge # Acknowledge incident
 POST   /api/v1/incidents/{id}/resolve     # Mark incident resolved
 
+GET    /api/v1/incidents/{id}/provenance.jsonld    # W3C PROV-O export (JSON-LD)
+GET    /api/v1/incidents/{id}/provenance.ttl       # W3C PROV-O export (Turtle)
+GET    /api/v1/incidents/{id}/provenance.provn     # W3C PROV-O export (PROV-N)
+
 GET    /api/v1/investigations/{id}/stream # SSE stream for live investigation updates
 
 POST   /api/v1/investigate               # Manually trigger investigation
@@ -1715,6 +1758,7 @@ GET    /api/v1/stats                     # Dashboard stats (incident count, MTTR
 GET    /api/v1/stats/patterns            # Recurring incident patterns from Graphiti
 
 GET    /api/v1/health                    # Health check (all service dependencies)
+GET    /.well-known/agent-card.json      # A2A Agent Card (agent discovery)
 ```
 
 ### 13.2 WebSocket / SSE for Live Investigation
@@ -1772,7 +1816,7 @@ chronos/
 │
 ├── chronos/                           # Python package
 │   ├── __init__.py
-│   ├── main.py                        # FastAPI app entrypoint
+│   ├── main.py                        # FastAPI app entrypoint + OpenLLMetry init
 │   ├── config/
 │   │   ├── __init__.py
 │   │   ├── settings.py                # Pydantic Settings (env vars)
@@ -1782,17 +1826,19 @@ chronos/
 │   │   ├── __init__.py
 │   │   ├── routes/
 │   │   │   ├── webhooks.py            # OM + OpenLineage webhook receivers
-│   │   │   ├── incidents.py           # Incident CRUD + SSE
+│   │   │   ├── incidents.py           # Incident CRUD + PROV-O export
 │   │   │   ├── investigations.py      # Manual trigger + live stream
-│   │   │   └── stats.py               # Dashboard statistics
+│   │   │   ├── stats.py               # Dashboard statistics
+│   │   │   └── well_known.py          # A2A Agent Card endpoint
 │   │   └── middleware.py              # Error handling, logging
 │   │
 │   ├── agent/                         # LangGraph investigation agent
 │   │   ├── __init__.py
-│   │   ├── graph.py                   # State machine definition
+│   │   ├── graph.py                   # State machine + Langfuse callback
 │   │   ├── state.py                   # InvestigationState TypedDict
 │   │   └── nodes/                     # One file per investigation step
 │   │       ├── __init__.py
+│   │       ├── prior_investigations.py # Step 0: Self-referential memory lookup
 │   │       ├── scope_failure.py
 │   │       ├── temporal_diff.py
 │   │       ├── lineage_walk.py
@@ -1800,7 +1846,8 @@ chronos/
 │   │       ├── downstream_impact.py
 │   │       ├── audit_correlation.py
 │   │       ├── rca_synthesis.py
-│   │       └── notify.py
+│   │       ├── notify.py
+│   │       └── persist_trace.py       # Step 9: Self-referential memory persist
 │   │
 │   ├── mcp/                           # MCP client connections
 │   │   ├── __init__.py
@@ -1813,6 +1860,14 @@ chronos/
 │   │   ├── graphiti_ingestor.py       # OM events -> Graphiti episodes
 │   │   ├── openlineage_receiver.py    # OpenLineage -> OM + Graphiti
 │   │   └── deduplicator.py            # Event deduplication logic
+│   │
+│   ├── compliance/                    # Compliance & provenance (NEW)
+│   │   ├── __init__.py
+│   │   └── prov_generator.py          # W3C PROV-O document generator
+│   │
+│   ├── observability/                 # Telemetry & tracing (NEW)
+│   │   ├── __init__.py
+│   │   └── otel_setup.py             # OpenLLMetry + OTel GenAI SemConv init
 │   │
 │   ├── enrichment/                    # Context enrichment
 │   │   ├── __init__.py
@@ -1828,10 +1883,13 @@ chronos/
 │   │   ├── events.py                  # Webhook payload models
 │   │   └── graphiti_entities.py       # Custom Graphiti entity types
 │   │
-│   └── llm/                           # LLM abstraction via LiteLLM
-│       ├── __init__.py
-│       ├── client.py                  # Synthesis + extraction wrappers
-│       └── prompts.py                 # System prompts for RCA
+│   ├── llm/                           # LLM abstraction via LiteLLM
+│   │   ├── __init__.py
+│   │   ├── client.py                  # Synthesis + extraction wrappers
+│   │   └── prompts.py                 # System prompts for RCA
+│   │
+│   └── .well-known/                   # A2A Protocol (NEW)
+│       └── agent-card.json            # Agent capability descriptor
 │
 ├── chronos-frontend/                  # React frontend
 │   ├── package.json
@@ -1852,7 +1910,8 @@ chronos/
 │       │   ├── InvestigationReplay.tsx
 │       │   ├── TemporalDiff.tsx
 │       │   ├── EvidenceChain.tsx
-│       │   └── BlastRadiusPanel.tsx
+│       │   ├── BlastRadiusPanel.tsx
+│       │   └── ProvenanceDownload.tsx  # PROV-O download button (NEW)
 │       ├── hooks/
 │       │   ├── useIncidents.ts
 │       │   ├── useIncidentDetail.ts
@@ -1887,14 +1946,24 @@ chronos/
 │   └── tests/
 │       └── assert_total_amount_positive.sql
 │
-└── tests/                             # Python tests
-    ├── test_agent/
-    │   ├── test_graph.py
-    │   └── test_nodes.py
-    ├── test_ingestion/
-    │   └── test_graphiti_ingestor.py
-    └── test_notifications/
-        └── test_slack.py
+├── tests/                             # Python tests
+│   ├── test_agent/
+│   │   ├── test_graph.py
+│   │   └── test_nodes.py
+│   ├── test_ingestion/
+│   │   └── test_graphiti_ingestor.py
+│   ├── test_notifications/
+│   │   └── test_slack.py
+│   └── evals/                         # Quality evaluation tests (NEW)
+│       ├── test_rca_quality.py         # DeepEval RCA accuracy tests
+│       ├── test_graphiti_retrieval.py  # RAGAs retrieval quality tests
+│       └── fixtures/                  # Test event fixtures
+│           └── events/
+│               └── schema_change_webhook.json
+│
+└── .github/                           # CI/CD
+    └── workflows/
+        └── eval.yml                   # CHRONOS Quality Eval workflow
 ```
 
 ---
@@ -1922,9 +1991,21 @@ LITELLM_MASTER_KEY=sk-chronos-local  # Local LiteLLM proxy key
 SLACK_WEBHOOK_URL=                   # Incoming webhook URL
 SLACK_CHANNEL=#data-incidents
 
+# ─── Langfuse (Agentic Observability) ───
+LANGFUSE_ENABLED=true                # Feature flag — set false for Langfuse-free mode
+LANGFUSE_HOST=http://localhost:3001
+LANGFUSE_PUBLIC_KEY=pk-lf-chronos-demo
+LANGFUSE_SECRET_KEY=sk-lf-chronos-demo
+
+# ─── OpenLLMetry / OTel ───
+OTEL_EXPORTER_OTLP_ENDPOINT=http://langfuse:4318  # OTLP endpoint (Langfuse or Jaeger)
+OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental
+
 # ─── CHRONOS Config ───
 CHRONOS_PORT=8100
 CHRONOS_DEBUG=true
+CHRONOS_VERSION=0.1.0
+ENVIRONMENT=development
 INVESTIGATION_WINDOW_HOURS=72       # How far back to look
 LINEAGE_DEPTH_UPSTREAM=5
 LINEAGE_DEPTH_DOWNSTREAM=3
@@ -1987,12 +2068,446 @@ open http://localhost:3000
 ### 16.3 Demo Talking Points
 
 1. "Watch: the test just failed. CHRONOS is already investigating."
-2. "Step 1: It scoped the failure — identified the exact column and test."
-3. "Step 2: Graphiti tells us this table's schema changed 2 hours ago. Temporal fact invalidation caught it."
-4. "Step 3: Upstream lineage walk found the schema change originated in `raw.stripe.payments`."
-5. "Step 4: GitNexus identified the commit in `stg_payments.sql` that changed the cast."
-6. "Step 5: 3 Tier-1 downstream assets are at risk, including the executive revenue dashboard."
-7. "Step 6: Audit log shows the schema change was made by user `alex` at 23:12 UTC."
-8. "Step 7: The LLM synthesized all evidence into a root cause report with 92% confidence."
-9. "Slack: The on-call engineer already has the full report with owner tags and remediation steps."
-10. "Total time: 47 seconds from failure detection to Slack notification."
+2. "Step 0: It checked institutional memory — found 2 related past incidents on this entity."
+3. "Step 1: Scoped the failure — identified the exact column and test."
+4. "Step 2: Graphiti tells us this table's schema changed 2 hours ago."
+5. "Step 3: Upstream lineage walk found the schema change in `raw.stripe.payments`."
+6. "Step 4: GitNexus identified the commit in `stg_payments.sql`."
+7. "Step 5: 3 Tier-1 downstream assets at risk."
+8. "Step 6: Audit log shows the change was made by user `alex` at 23:12 UTC."
+9. "Step 7: LLM synthesized a root cause report with 92% confidence. It references the past incident!"
+10. "Step 8: Slack notification fired with owner tags and remediation steps."
+11. "Step 9: This entire investigation is now persisted in Graphiti — next time it happens, CHRONOS will know."
+12. "Total time: 47 seconds. Now let me show you the Langfuse trace tree..."
+13. *(Switch to Langfuse UI)* "Every step is a span in this trace tree. You can see token counts, costs, and timing."
+14. *(Click Download)* "One-click W3C PROV-O compliance artifact for GDPR auditors."
+15. "And any other agent can discover CHRONOS via: `curl localhost:8100/.well-known/agent-card.json`"
+
+---
+
+## 17. Self-Referential Investigation Memory (F11)
+
+### 17.1 Step 0: Check Prior Investigations
+
+```python
+# chronos/agent/nodes/prior_investigations.py
+
+async def check_prior_investigations(state: InvestigationState) -> dict:
+    """
+    Step 0: Query Graphiti for past investigations of the same entity
+    or pattern. Include findings as context for the current investigation.
+    """
+    graphiti_mcp = get_graphiti_mcp_client()
+    entity_fqn = extract_entity_from_trigger(state["trigger_event"])
+
+    prior_investigations = await graphiti_mcp.call_tool(
+        "search_facts",
+        {
+            "query": f"past incidents on {entity_fqn}",
+            "group_id": "chronos-investigation-traces",
+        }
+    )
+
+    patterns = await graphiti_mcp.call_tool(
+        "search_nodes",
+        {
+            "query": f"recurrence patterns for {entity_fqn} or similar assets",
+            "group_id": "chronos-investigation-traces",
+        }
+    )
+
+    return {
+        "prior_investigations": prior_investigations,
+        "recurrence_patterns": patterns,
+        "step_results": state["step_results"] + [{
+            "step": "check_prior_investigations",
+            "completed_at": datetime.utcnow().isoformat(),
+            "summary": f"Found {len(prior_investigations)} related past incidents"
+        }]
+    }
+```
+
+### 17.2 Step 9: Persist Investigation Trace
+
+```python
+# chronos/agent/nodes/persist_trace.py
+
+async def persist_investigation_trace(state: InvestigationState) -> dict:
+    """
+    Step 9 (post-notify): Persist the investigation trace as a
+    Graphiti episode. Creates self-improving memory over time.
+    """
+    graphiti_mcp = get_graphiti_mcp_client()
+    report = state["incident_report"]
+
+    trace_narrative = _format_investigation_as_episode(state)
+
+    await graphiti_mcp.call_tool(
+        "add_episode",
+        {
+            "name": f"chronos-investigation-{report['incident_id']}",
+            "episode_body": trace_narrative,
+            "source": "json",
+            "source_description": "CHRONOS investigation trace",
+            "group_id": "chronos-investigation-traces",
+            "reference_time": datetime.utcnow().isoformat(),
+        }
+    )
+
+    # Per-step telemetry for cost/latency analysis
+    for step_result in state["step_results"]:
+        await graphiti_mcp.call_tool(
+            "add_episode",
+            {
+                "name": f"step-{report['incident_id']}-{step_result['step']}",
+                "episode_body": json.dumps({
+                    "incident_id": report["incident_id"],
+                    "step": step_result["step"],
+                    "duration_ms": step_result.get("duration_ms"),
+                    "mcp_calls": step_result.get("mcp_calls", 0),
+                    "llm_tokens": step_result.get("llm_tokens", 0),
+                    "summary": step_result["summary"],
+                }),
+                "source": "json",
+                "source_description": "CHRONOS step telemetry",
+                "group_id": "chronos-step-telemetry",
+            }
+        )
+
+    return {"trace_persisted": True}
+
+def _format_investigation_as_episode(state) -> str:
+    report = state["incident_report"]
+    return (
+        f"CHRONOS investigation {report['incident_id']} completed on "
+        f"{report['investigation_completed_at']}. "
+        f"Investigated failure of test '{report['test_name']}' on entity "
+        f"'{report['affected_entity_fqn']}'. "
+        f"Root cause identified as {report['root_cause_category']} "
+        f"with {report['confidence']:.0%} confidence. "
+        f"Probable cause: {report['probable_root_cause']}. "
+        f"Business impact: {report['business_impact']}. "
+        f"Affected {len(report['affected_downstream'])} downstream assets. "
+        f"Investigation took {report['investigation_duration_ms']}ms and "
+        f"used {report['total_llm_tokens']} tokens across "
+        f"{report['total_mcp_calls']} MCP tool calls."
+    )
+```
+
+---
+
+## 18. Langfuse Integration (F12)
+
+### 18.1 Docker Compose Additions
+
+```yaml
+  langfuse-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    ports:
+      - "5433:5432"
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+
+  langfuse:
+    image: langfuse/langfuse:latest
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: chronos-hackathon-secret-change-me
+      SALT: chronos-salt-change-me
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_INIT_ORG_ID: chronos-org
+      LANGFUSE_INIT_PROJECT_ID: chronos
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-chronos-demo
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-chronos-demo
+    depends_on:
+      - langfuse-db
+```
+
+### 18.2 Invocation with Callback
+
+```python
+# chronos/api/routes/webhooks.py (updated invocation)
+
+graph, config = build_investigation_graph(incident_id=generated_id)
+result = await graph.ainvoke(initial_state, config=config)
+```
+
+---
+
+## 19. OpenLLMetry + OTel GenAI SemConv (F15/F16)
+
+### 19.1 Initialization
+
+```python
+# chronos/observability/otel_setup.py
+
+import os
+os.environ["OTEL_SEMCONV_STABILITY_OPT_IN"] = "gen_ai_latest_experimental"
+
+from traceloop.sdk import Traceloop
+from opentelemetry import trace
+from opentelemetry.trace import SpanKind
+
+def init_observability(settings):
+    """Initialize OpenLLMetry for vendor-neutral LLM instrumentation."""
+    Traceloop.init(
+        app_name="chronos",
+        api_endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
+        disable_batch=False,
+        resource_attributes={
+            "service.name": "chronos-agent",
+            "service.version": settings.VERSION,
+            "deployment.environment": settings.ENVIRONMENT,
+        },
+    )
+
+tracer = trace.get_tracer("chronos.agent")
+```
+
+### 19.2 App Startup Integration
+
+```python
+# chronos/main.py (additions)
+
+from chronos.observability.otel_setup import init_observability
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_observability(settings)
+    yield
+```
+
+---
+
+## 20. W3C PROV-O Compliance (F13)
+
+### 20.1 Provenance Document Generator
+
+```python
+# chronos/compliance/prov_generator.py
+
+from prov.model import ProvDocument
+from chronos.models import IncidentReport
+
+CHRONOS_NS = "http://chronos.dev/ns/"
+OM_NS = "http://openmetadata.org/ns/"
+
+def generate_prov_document(report: IncidentReport) -> ProvDocument:
+    doc = ProvDocument()
+    doc.add_namespace("chronos", CHRONOS_NS)
+    doc.add_namespace("om", OM_NS)
+    doc.add_namespace("prov", "http://www.w3.org/ns/prov#")
+
+    # AGENT: CHRONOS itself
+    chronos_agent = doc.agent(
+        f"chronos:agent/{report.agent_version}",
+        {"prov:type": "prov:SoftwareAgent", "chronos:version": report.agent_version},
+    )
+
+    # ACTIVITY: the investigation
+    investigation = doc.activity(
+        f"chronos:investigation/{report.incident_id}",
+        startTime=report.detected_at,
+        endTime=report.investigation_completed_at,
+        other_attributes={
+            "chronos:root_cause_category": report.root_cause_category,
+            "chronos:confidence": report.confidence,
+        },
+    )
+    doc.wasAssociatedWith(investigation, chronos_agent)
+
+    # ENTITY: affected data asset
+    affected = doc.entity(f"om:table/{report.affected_entity_fqn}")
+    doc.used(investigation, affected)
+
+    # ENTITY: incident report output
+    report_ent = doc.entity(f"chronos:incident/{report.incident_id}")
+    doc.wasGeneratedBy(report_ent, investigation)
+
+    # Evidence items
+    for i, ev in enumerate(report.evidence_chain):
+        ev_ent = doc.entity(f"chronos:evidence/{report.incident_id}/{i}")
+        doc.used(investigation, ev_ent)
+        doc.wasDerivedFrom(report_ent, ev_ent)
+
+    # Downstream blast radius
+    for asset in report.affected_downstream:
+        ds = doc.entity(f"om:asset/{asset.fqn}", {"om:tier": asset.tier})
+        doc.wasInfluencedBy(ds, affected)
+
+    return doc
+
+def export_prov_jsonld(report): return generate_prov_document(report).serialize(format="json")
+def export_prov_turtle(report): return generate_prov_document(report).serialize(format="rdf", rdf_format="turtle")
+```
+
+### 20.2 API Endpoints
+
+```python
+# chronos/api/routes/incidents.py (additions)
+
+@router.get("/incidents/{incident_id}/provenance.jsonld")
+async def get_provenance_jsonld(incident_id: str):
+    report = await get_incident_report(incident_id)
+    return Response(content=export_prov_jsonld(report), media_type="application/ld+json")
+
+@router.get("/incidents/{incident_id}/provenance.ttl")
+async def get_provenance_turtle(incident_id: str):
+    report = await get_incident_report(incident_id)
+    return Response(content=export_prov_turtle(report), media_type="text/turtle")
+```
+
+---
+
+## 21. A2A Agent Card (F14)
+
+### 21.1 Agent Card Definition
+
+```json
+// chronos/.well-known/agent-card.json
+{
+  "name": "CHRONOS",
+  "description": "Autonomous data incident root cause analysis agent.",
+  "url": "http://localhost:8100",
+  "version": "0.1.0",
+  "provider": { "organization": "chronos-hackathon", "url": "https://github.com/guglxni/chronos" },
+  "capabilities": { "streaming": true, "pushNotifications": true, "stateTransitionHistory": true },
+  "authentication": { "schemes": ["Bearer"] },
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json", "application/ld+json"],
+  "skills": [
+    {
+      "id": "investigate_data_incident",
+      "name": "Investigate Data Quality Incident",
+      "description": "Given a failed test, autonomously investigate root cause across metadata, temporal, and code graphs.",
+      "tags": ["data-quality", "root-cause-analysis", "openmetadata"]
+    },
+    {
+      "id": "assess_blast_radius",
+      "name": "Assess Blast Radius",
+      "description": "Compute downstream blast radius for a data asset.",
+      "tags": ["impact-analysis", "lineage"]
+    },
+    {
+      "id": "generate_compliance_report",
+      "name": "Generate W3C PROV-O Compliance Artifact",
+      "description": "Export investigation as W3C PROV-O provenance document.",
+      "tags": ["compliance", "provenance", "gdpr"]
+    }
+  ]
+}
+```
+
+### 21.2 FastAPI Route
+
+```python
+# chronos/api/routes/well_known.py
+
+from fastapi import APIRouter
+from fastapi.responses import FileResponse
+
+router = APIRouter()
+
+@router.get("/.well-known/agent-card.json")
+async def get_agent_card():
+    return FileResponse("chronos/.well-known/agent-card.json", media_type="application/json")
+```
+
+---
+
+## 22. DeepEval Quality Tests (F17)
+
+```python
+# tests/evals/test_rca_quality.py
+
+import pytest
+from deepeval import assert_test
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from deepeval.metrics import GEval, FaithfulnessMetric
+
+rca_accuracy = GEval(
+    name="RCA Accuracy",
+    criteria=(
+        "Determine if the root cause correctly identifies the injected failure. "
+        "Check entity, category, and blast radius match."
+    ),
+    evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
+    threshold=0.8,
+)
+
+evidence_faithfulness = FaithfulnessMetric(threshold=0.85, model="gpt-4.1-mini", include_reason=True)
+
+@pytest.mark.asyncio
+async def test_chronos_detects_schema_change(schema_change_scenario):
+    incident = await run_investigation(schema_change_scenario["trigger_event"])
+    test_case = LLMTestCase(
+        input=str(schema_change_scenario["trigger_event"]),
+        actual_output=incident.model_dump_json(),
+        expected_output=str(schema_change_scenario["expected_output"]),
+        retrieval_context=[str(e.raw_data) for e in incident.evidence_chain],
+    )
+    assert_test(test_case, [rca_accuracy, evidence_faithfulness])
+```
+
+---
+
+## 23. RAGAs Retrieval Evaluation (F18)
+
+```python
+# tests/evals/test_graphiti_retrieval.py
+
+from ragas import evaluate
+from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
+from datasets import Dataset
+
+async def test_graphiti_temporal_diff_retrieval():
+    entity_fqn = "raw.stripe.payments"
+    seeded_fact = "Column total_amount type changed from DECIMAL to VARCHAR"
+
+    state = await temporal_diff({"affected_entity_fqn": entity_fqn, ...})
+    retrieved_facts = [f["fact"] for f in state["temporal_changes"]]
+
+    dataset = Dataset.from_dict({
+        "question": [f"What recently changed about {entity_fqn}?"],
+        "answer": [state.get("temporal_summary", "")],
+        "contexts": [retrieved_facts],
+        "ground_truth": [seeded_fact],
+    })
+
+    result = evaluate(dataset=dataset, metrics=[faithfulness, answer_relevancy, context_precision, context_recall])
+    assert result["context_recall"] > 0.8
+    assert result["context_precision"] > 0.6
+```
+
+---
+
+## 24. GitHub Actions CI for Evaluations (F17)
+
+```yaml
+# .github/workflows/eval.yml
+
+name: CHRONOS Quality Eval
+on: [pull_request]
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Docker stack
+        run: docker-compose up -d openmetadata falkordb graphiti-mcp
+      - name: Seed demo data
+        run: ./scripts/seed_openmetadata.sh
+      - name: Run CHRONOS evals
+        run: pytest tests/evals/ -v
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```

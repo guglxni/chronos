@@ -7,7 +7,7 @@
 
 ```
 INCEPTION ✅ ──→ CONSTRUCTION ⬜ ──→ OPERATIONS ⬜
-(Complete)       (6 Units)          (Deploy + Demo)
+(Complete)       (7 Units)          (Deploy + Demo)
 ```
 
 ## Unit Decomposition & Build Order
@@ -24,6 +24,8 @@ Unit 4: Output Layer ←── depends on Unit 3
 Unit 5: REST API + SSE ←── depends on Units 3+4
     ↓
 Unit 6: React Frontend ←── depends on Unit 5
+    ↓
+Unit 7: Agentic Metadata ←── cross-cutting (extends Units 1,3,5,6)
 ```
 
 ## Unit Specifications
@@ -31,16 +33,16 @@ Unit 6: React Frontend ←── depends on Unit 5
 ### Unit 1: Core Infrastructure & Configuration
 **Packages**: `chronos/config/`, `chronos/models/`, `chronos/llm/`
 **Deliverables**:
-- [ ] Pydantic Settings (env var configuration)
+- [ ] Pydantic Settings (env var configuration — includes Langfuse, OTel vars)
 - [ ] LiteLLM config (model routing — synthesis + extraction)
 - [ ] Data models (IncidentReport, EvidenceItem, AffectedAsset, RemediationStep)
 - [ ] Graphiti entity types (DataAsset, DataTest, Schema, Pipeline, Incident)
 - [ ] Event payload models (OpenMetadataWebhookPayload, OpenLineageRunEvent)
 - [ ] LLM client wrapper (synthesize + extract functions)
-- [ ] pyproject.toml with all dependencies
+- [ ] pyproject.toml with all dependencies (including langfuse, traceloop-sdk, prov, deepeval, ragas)
 - [ ] Dockerfile
-- [ ] docker-compose.yml (complete stack)
-- [ ] .env.example template
+- [ ] docker-compose.yml (complete stack including Langfuse + Postgres)
+- [ ] .env.example template (including Langfuse, OTel vars)
 
 **Estimated Effort**: Day 1-2
 
@@ -60,8 +62,9 @@ Unit 6: React Frontend ←── depends on Unit 5
 ### Unit 3: LangGraph Investigation Agent
 **Packages**: `chronos/agent/`
 **Deliverables**:
-- [ ] InvestigationState TypedDict
-- [ ] LangGraph state machine with 8 nodes + conditional edges
+- [ ] InvestigationState TypedDict (v2.0: +prior_investigations, +trace_persisted)
+- [ ] LangGraph state machine with 10 nodes + conditional edges + Langfuse callback
+- [ ] Node: **prior_investigations** (Step 0 — Graphiti self-referential lookup) **(NEW v2.0)**
 - [ ] Node: scope_failure (OpenMetadata MCP)
 - [ ] Node: temporal_diff (Graphiti MCP + OpenMetadata MCP)
 - [ ] Node: lineage_walk (OpenMetadata MCP)
@@ -70,6 +73,7 @@ Unit 6: React Frontend ←── depends on Unit 5
 - [ ] Node: audit_correlation (OpenMetadata MCP + Graphiti MCP)
 - [ ] Node: rca_synthesis (LiteLLM — structured output)
 - [ ] Node: notify (Slack webhook)
+- [ ] Node: **persist_trace** (Step 9 — Graphiti self-referential persist) **(NEW v2.0)**
 - [ ] RCA system prompt + evidence compilation
 
 **Dependencies**: Units 1+2 (models, MCP clients, LLM client)
@@ -90,12 +94,14 @@ Unit 6: React Frontend ←── depends on Unit 5
 ### Unit 5: FastAPI REST API & SSE Streaming
 **Packages**: `chronos/api/`, `chronos/main.py`
 **Deliverables**:
-- [ ] FastAPI application entrypoint
-- [ ] Webhook routes (OpenMetadata + OpenLineage)
+- [ ] FastAPI application entrypoint (with OpenLLMetry init)
+- [ ] Webhook routes (OpenMetadata + OpenLineage) (with Langfuse graph invocation)
 - [ ] Incident CRUD routes (list, detail, acknowledge, resolve)
+- [ ] PROV-O export endpoints (.jsonld, .ttl, .provn) **(NEW v2.0)**
 - [ ] Investigation SSE stream endpoint
 - [ ] Manual investigation trigger endpoint
 - [ ] Dashboard statistics endpoint
+- [ ] A2A Agent Card endpoint (`/.well-known/agent-card.json`) **(NEW v2.0)**
 - [ ] Health check endpoint
 - [ ] Error handling middleware
 
@@ -123,6 +129,20 @@ Unit 6: React Frontend ←── depends on Unit 5
 **Dependencies**: Unit 5 (API endpoints)
 **Estimated Effort**: Day 7-8
 
+### Unit 7: Agentic Metadata Infrastructure (Cross-Cutting)
+**Packages**: `chronos/compliance/`, `chronos/observability/`, `chronos/.well-known/`, `tests/evals/`
+**Deliverables**:
+- [ ] W3C PROV-O document generator (`chronos/compliance/prov_generator.py`) **(F13)**
+- [ ] OpenLLMetry + OTel GenAI SemConv init (`chronos/observability/otel_setup.py`) **(F15/F16)**
+- [ ] A2A Agent Card JSON (`chronos/.well-known/agent-card.json`) **(F14)**
+- [ ] DeepEval RCA quality tests (`tests/evals/test_rca_quality.py`) **(F17)**
+- [ ] RAGAs retrieval quality tests (`tests/evals/test_graphiti_retrieval.py`) **(F18)**
+- [ ] Test fixture: canonical demo webhook event
+- [ ] GitHub Actions eval workflow (`.github/workflows/eval.yml`)
+
+**Dependencies**: Units 1+3+5 (cross-cutting)
+**Estimated Effort**: Day 8-9 (parallel with polish)
+
 ## Construction Phase Plan
 
 For each unit, the AIDLC workflow will execute:
@@ -136,10 +156,10 @@ For each unit, the AIDLC workflow will execute:
 
 | PRD Phase | Days | AIDLC Units | Status |
 |-----------|------|-------------|--------|
-| Foundation | 1-3 | Units 1 + 2 | ⬜ Pending |
-| Agent Core | 4-6 | Units 3 + 4 | ⬜ Pending |
-| Integration & UI | 7-8 | Units 5 + 6 | ⬜ Pending |
-| Polish & Demo | 9-10 | Operations Phase | ⬜ Pending |
+| Foundation | 1-3 | Units 1 + 2 (+ Langfuse Docker in Unit 1) | ⬜ Pending |
+| Agent Core | 4-6 | Units 3 + 4 (+ Self-Referential Memory Steps 0/9) | ⬜ Pending |
+| Integration & UI | 7-8 | Units 5 + 6 (+ PROV-O, A2A, OpenLLMetry, PROV-O Download) | ⬜ Pending |
+| Polish & Demo | 9-10 | Unit 7 (DeepEval, RAGAs) + Operations Phase | ⬜ Pending |
 
 ## Risk Mitigation (from PRD §7.4)
 
@@ -149,3 +169,6 @@ For each unit, the AIDLC workflow will execute:
 | Graphiti ingestion latency | Fast extraction model via LiteLLM; batch ingestion in Unit 2 |
 | Scope creep (8+ tools) | Strict unit boundaries; F7-F10 only if Units 1-6 complete |
 | Demo data realism | Demo scenario script in Operations phase |
+| Langfuse Docker dependency | Feature-flagged via `LANGFUSE_ENABLED=true/false`; file-based fallback |
+| PROV-O complexity | Python `prov` library handles serialization; thin wrapper only |
+| DeepEval/RAGAs need LLM keys | Tests skip gracefully if API keys unavailable in CI |

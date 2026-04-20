@@ -6,8 +6,9 @@
 **Hackathon:** OpenMetadata Paradox Hackathon (WeMakeDevs x OpenMetadata)
 **Dates:** April 17 - April 26, 2026
 **Track Coverage:** T-01 (MCP & AI Agents), T-02 (Data Observability), T-05 (Community & Comms), T-06 (Governance & Classification)
-**Version:** 1.0
+**Version:** 2.0 — Agentic Metadata Infrastructure Edition
 **Author:** Aaryan
+**Changelog:** v2.0 adds 8 FOSS integrations closing gaps from *Is Agentic Metadata the Next Infrastructure Layer?* (The New Stack, Jan 2026): Langfuse, OpenLLMetry, OTel GenAI SemConv, DeepEval, RAGAs, W3C PROV-O, A2A Protocol, self-referential investigation memory.
 
 ---
 
@@ -45,16 +46,22 @@ OpenMetadata already stores all the raw ingredients for automated root cause ana
 
 ## 2. Product Vision
 
-CHRONOS is an autonomous data incident investigation agent that operates across three knowledge graphs simultaneously to identify root causes, assess blast radius, and communicate findings — reducing mean time to resolution (MTTR) from ~45 minutes to ~2 minutes.
+CHRONOS is an autonomous data incident investigation agent built as an **agentic metadata infrastructure layer**. It operates across three knowledge graphs simultaneously to identify root causes, assess blast radius, and communicate findings — reducing mean time to resolution (MTTR) from ~45 minutes to ~2 minutes.
+
+CHRONOS embodies the vision from *Is Agentic Metadata the Next Infrastructure Layer?* (The New Stack): treating what's happening under the hood of AI agents as first-class metadata, producing compliance-grade provenance, emitting standardized telemetry, self-describing via agent discovery protocols, and improving over time from its own investigation traces.
 
 When a data quality test fails, CHRONOS autonomously:
 
-1. Detects the failure via OpenMetadata webhooks
-2. Investigates the root cause by reasoning across metadata, temporal state, and code structure
-3. Assesses downstream impact by tracing lineage and evaluating business criticality
-4. Produces a structured incident report with probable cause, confidence level, and remediation guidance
-5. Notifies affected stakeholders via Slack with contextual, role-appropriate information
-6. Remembers the incident in a temporal knowledge graph for pattern recognition over time
+1. **Checks institutional memory** — queries past investigations of the same entity/pattern via Graphiti
+2. **Detects** the failure via OpenMetadata webhooks
+3. **Investigates** the root cause by reasoning across metadata, temporal state, and code structure
+4. **Assesses** downstream impact by tracing lineage and evaluating business criticality
+5. **Produces** a structured incident report with probable cause, confidence level, and remediation guidance
+6. **Generates** W3C PROV-O compliance artifacts for audit trails (GDPR/SOC2-ready)
+7. **Notifies** affected stakeholders via Slack with contextual, role-appropriate information
+8. **Remembers** the incident in a temporal knowledge graph for pattern recognition over time
+9. **Emits** OpenTelemetry GenAI SemConv traces observable in Langfuse
+10. **Describes itself** via A2A Agent Card for agent-to-agent discovery
 
 ### 2.1 The Triple-Graph Architecture
 
@@ -197,6 +204,88 @@ A CI/CD integration that runs a lightweight CHRONOS check before code merges.
 - Warn the developer about potential impact: "This change affects 3 Tier-1 tables with 12 active data quality tests"
 - This is a stretch goal but would be extremely impressive for the hackathon demo
 
+### 4.3 Agentic Metadata Infrastructure Features (Gap-Closing)
+
+These features close the seven architectural gaps identified in *Is Agentic Metadata the Next Infrastructure Layer?* (The New Stack, Jan 2026) and transform CHRONOS from an "automated investigator" into a self-improving agentic metadata layer.
+
+**F11: Self-Referential Investigation Memory (Gap 8)**
+CHRONOS persists its own investigation traces as Graphiti episodes and queries them before new investigations. This is the single most important architectural upgrade.
+
+- **Step 0 (new):** Before investigating, query `chronos-investigation-traces` group for past incidents on the same entity or matching pattern
+- **Step 9 (new):** After notification, persist the full investigation trace (root cause, evidence, timing, cost) as a Graphiti episode
+- "Related Past Incidents" section in the incident report with linkbacks
+- Per-step telemetry episodes persisted in `chronos-step-telemetry` group
+- Enables pattern recognition: "5 incidents in payments domain this month, 4 were SCHEMA_CHANGE"
+- **Priority: HIGHEST** — cheapest change with biggest conceptual payoff (uses existing infrastructure)
+
+**F12: Agentic Observability via Langfuse (Gap 1)**
+Every CHRONOS investigation becomes a trace tree in Langfuse — persistent, replayable, annotatable, queryable.
+
+- Self-hosted Langfuse via Docker Compose (Postgres-backed)
+- LangChain callback handler wired into LangGraph for automatic trace capture
+- Zero changes to agent logic — callback-based instrumentation
+- Session ID = incident ID (groups all steps of one investigation)
+- Cost per investigation automatically tracked with model/provider breakdown
+- Failed investigations replayable + annotatable via Annotation Queues
+- Production traces promotable into evaluation datasets (regression testing)
+- **Priority: HIGH** — 1-day integration, massive observability depth
+
+**F13: Compliance-Grade Provenance via W3C PROV-O (Gap 6)**
+Generate GDPR/SOC2-ready audit artifacts from investigation traces using the W3C PROV-O standard.
+
+- Python `prov` library generates ProvDocuments from IncidentReports
+- Maps CHRONOS concepts to PROV-O: Agent (CHRONOS), Activity (investigation), Entity (data assets, evidence)
+- Serializes to JSON-LD, RDF/Turtle, PROV-N formats
+- New API endpoint: `GET /api/v1/incidents/{id}/provenance.jsonld`
+- Aligns with OpenMetadata Standards' own use of PROV-O
+- "Download as W3C PROV-O compliance artifact" button in dashboard
+- **Priority: MEDIUM-HIGH** — stealth differentiator for enterprise judges
+
+**F14: A2A Agent Card for Discovery (Gap 7)**
+CHRONOS describes itself via the A2A Protocol Agent Card — making it discoverable by other agents.
+
+- JSON agent card served at `/.well-known/agent-card.json`
+- Describes capabilities (investigate, assess blast radius, generate compliance report)
+- Follows Google/LF AI & Data A2A specification
+- Demoable via `curl http://localhost:8100/.well-known/agent-card.json | jq`
+- **Priority: MEDIUM** — 30 minutes, high conceptual payoff
+
+**F15: Vendor-Neutral LLM Instrumentation via OpenLLMetry (Gap 2)**
+Pure OpenTelemetry-based instrumentation so telemetry is portable to any backend.
+
+- Traceloop SDK auto-instruments LiteLLM + LangGraph via OTel GenAI SemConv
+- Single-line initialization at app startup
+- `gen_ai.*` span attributes for model, provider, tokens, cost, finish reason
+- Traces dual-routable: Langfuse for agent UI, Jaeger/SigNoz for infrastructure correlation
+- **Priority: MEDIUM** — shows architectural sophistication
+
+**F16: OTel GenAI Semantic Conventions (Gap 3)**
+Standardized telemetry schema following OpenTelemetry GenAI SemConv v1.37+.
+
+- `gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.agent.id` attributes
+- Custom `chronos.*` namespace for investigation-specific attributes
+- Emerges mostly free from OpenLLMetry integration
+- README compliance posture: "CHRONOS emits OpenTelemetry GenAI SemConv spans"
+- **Priority: LOW** — free with F15
+
+**F17: Continuous Quality Evaluation via DeepEval (Gap 4)**
+Pytest-compatible evaluation tests for RCA quality regression detection.
+
+- Custom G-Eval metric: does the root cause match the injected failure?
+- FaithfulnessMetric: is the evidence chain faithful to gathered facts?
+- 2-3 tests on the canonical demo scenario
+- CI/CD integration via GitHub Actions
+- Production traces → evaluation datasets (feedback loop)
+- **Priority: MEDIUM** — engineering maturity signal
+
+**F18: Retrieval Quality Evaluation via RAGAs (Gap 5)**
+Evaluate Graphiti's retrieval quality per investigation step.
+
+- Faithfulness, Answer Relevancy, Context Precision, Context Recall metrics
+- Validates that Graphiti returns the right temporal facts
+- Test: "Did Graphiti surface the schema change fact when queried?"
+- **Priority: LOW-MEDIUM** — nice-to-have quality gate
+
 ---
 
 ## 5. Success Metrics
@@ -232,7 +321,7 @@ A CI/CD integration that runs a lightweight CHRONOS check before code merges.
 | Tool | Role | License | Why This Tool |
 |---|---|---|---|
 | **OpenMetadata** | Central metadata platform, MCP server, webhooks, lineage, governance | Apache 2.0 | Hackathon requirement. 70+ connectors, native MCP, comprehensive API |
-| **Graphiti** (getzep/graphiti) | Temporal knowledge graph engine | Apache 2.0 | Bi-temporal model, episode-based ingestion, automatic fact invalidation, native MCP server, FalkorDB backend |
+| **Graphiti** (getzep/graphiti) | Temporal knowledge graph engine + self-referential investigation memory | Apache 2.0 | Bi-temporal model, episode-based ingestion, automatic fact invalidation, native MCP server, FalkorDB backend |
 | **GitNexus** (abhigyanpatwari/GitNexus) | Code knowledge graph | MIT | AST-based code analysis, Cypher queries, KuzuDB embedded, MCP server, blast radius detection |
 | **Graphify** (safishamsi/graphify) | Multi-modal knowledge graph for docs/architecture | MIT | Tree-sitter 25-language support, Leiden clustering, GRAPH_REPORT.md, multi-modal ingestion |
 
@@ -243,25 +332,37 @@ A CI/CD integration that runs a lightweight CHRONOS check before code merges.
 | **LangGraph** (langchain-ai/langgraph) | Agent orchestration as state machine | MIT | Explicit state management, conditional edges, built-in Graphiti integration, debuggable investigation flows |
 | **LiteLLM** (BerriAI/litellm) | Unified LLM provider gateway | MIT | 100+ LLM providers through one API, fallback routing, cost tracking, rate limiting. Swap models without code changes |
 
-### 6.3 Data & Lineage
+### 6.3 Agentic Observability & Compliance Layer (NEW)
+
+| Tool | Role | License | Why This Tool | Gap Addressed |
+|---|---|---|---|---|
+| **Langfuse** (langfuse/langfuse) | Agentic observability — trace trees, annotation, evaluation | MIT | Deepest LangGraph integration, self-hostable Docker, 21k+ stars, combines observability + prompt mgmt + eval | Gap 1 |
+| **OpenLLMetry** (traceloop/openllmetry) | Vendor-neutral LLM instrumentation via OTel | Apache 2.0 | Pure OpenTelemetry-based, leads GenAI SemConv working group, single-line setup | Gap 2 |
+| **OTel GenAI SemConv** (open-telemetry/semantic-conventions) | Standardized telemetry schema | Apache 2.0 | `gen_ai.*` span attributes, portable to any OTLP backend, industry convergence | Gap 3 |
+| **DeepEval** (confident-ai/deepeval) | Continuous RCA quality evaluation | Apache 2.0 | Pytest-compatible, 50+ metrics, G-Eval for custom criteria, CI/CD native | Gap 4 |
+| **RAGAs** (explodinggradients/ragas) | Retrieval quality evaluation for Graphiti | Apache 2.0 | Faithfulness, Relevancy, Precision, Recall metrics for RAG evaluation | Gap 5 |
+| **W3C PROV-O** via `prov` (trungdong/prov) | Compliance-grade provenance | MIT | W3C Recommendation since 2013, JSON-LD/RDF/Turtle, GDPR/SOC2-ready | Gap 6 |
+| **A2A Protocol** (a2aproject/A2A) | Agent discovery & self-description | Apache 2.0 | Linux Foundation project (Google-contributed), Agent Card spec, emerging standard | Gap 7 |
+
+### 6.4 Data & Lineage
 
 | Tool | Role | License | Why This Tool |
 |---|---|---|---|
 | **OpenLineage** (OpenLineage/OpenLineage) | Lineage event standard | Apache 2.0 | Native OpenMetadata 1.12 integration, vendor-neutral lineage events, Airflow/dbt/Spark integrations |
 | **FalkorDB** | Graph database (Graphiti backend) | Server Side Public License | Redis-based, lightweight, Docker-ready, default Graphiti backend, low latency |
 
-### 6.4 Frontend & Visualization
+### 6.5 Frontend & Visualization
 
 | Tool | Role | License | Why This Tool |
 |---|---|---|---|
 | **React Flow** (xyflow/xyflow) | Interactive lineage graph visualization | MIT | De facto standard for node-based UIs in React, handles large graphs, extensive customization |
 | **React** + **Tailwind CSS** | Frontend framework + styling | MIT | Standard modern stack, fast prototyping |
 
-### 6.5 Infrastructure
+### 6.6 Infrastructure
 
 | Tool | Role | License | Why This Tool |
 |---|---|---|---|
-| **Docker Compose** | Local orchestration | Apache 2.0 | Single `docker-compose up` to run OpenMetadata + FalkorDB + CHRONOS |
+| **Docker Compose** | Local orchestration | Apache 2.0 | Single `docker-compose up` to run OpenMetadata + FalkorDB + Langfuse + CHRONOS |
 | **FastAPI** | CHRONOS API server | MIT | Async Python, auto-generated OpenAPI docs, webhook endpoints |
 
 ---
@@ -273,13 +374,19 @@ A CI/CD integration that runs a lightweight CHRONOS check before code merges.
 - Event-driven investigation triggered by OpenMetadata test failures
 - Multi-step autonomous investigation using LangGraph + 3 MCP servers
 - Temporal knowledge graph construction and querying via Graphiti
+- Self-referential investigation memory: CHRONOS learns from its own past investigations (F11)
 - Code-level blast radius analysis via GitNexus
 - Architecture context enrichment via Graphify
 - Structured incident reports with confidence scoring
+- W3C PROV-O compliance artifact generation for GDPR/SOC2 audits (F13)
 - Slack notification with owner tagging and remediation guidance
 - React dashboard with interactive lineage visualization
 - OpenLineage event ingestion for richer lineage data
 - LiteLLM for model-agnostic LLM inference
+- Agentic observability via Langfuse trace trees (F12)
+- Vendor-neutral instrumentation via OpenLLMetry + OTel GenAI SemConv (F15/F16)
+- A2A Agent Card for agent discovery (F14)
+- RCA quality evaluation via DeepEval (F17)
 
 ### 7.2 Out of Scope
 
@@ -314,10 +421,10 @@ A CI/CD integration that runs a lightweight CHRONOS check before code merges.
 
 | Phase | Days | Deliverables |
 |---|---|---|
-| **Foundation** | 1-3 | OpenMetadata Docker running with sample data. Graphiti + FalkorDB running with test episodes. GitNexus indexed on sample dbt repo. All 3 MCP servers verified. LiteLLM configured with at least one provider. |
-| **Agent Core** | 4-6 | LangGraph investigation state machine with all 7 steps implemented. End-to-end investigation from test failure to structured report. Graphiti episode ingestion pipeline from OpenMetadata webhooks. |
-| **Integration & UI** | 7-8 | React Flow dashboard with lineage failure map. Slack notification integration. OpenLineage event ingestion (if time). Graphify architecture context (if time). |
-| **Polish & Demo** | 9-10 | Demo scenario scripted and tested. README with architecture diagrams. Video recording. Edge case handling. Performance optimization. |
+| **Foundation** | 1-3 | OpenMetadata Docker running with sample data. Graphiti + FalkorDB running with test episodes. GitNexus indexed on sample dbt repo. All 3 MCP servers verified. LiteLLM configured. **Langfuse Docker deployed.** |
+| **Agent Core** | 4-6 | LangGraph investigation state machine with all 9 steps (including Step 0: prior_investigations and Step 9: persist_trace). End-to-end investigation with **self-referential memory loop (F11)**. Graphiti episode ingestion pipeline. **Langfuse callback wired in (F12).** |
+| **Integration & UI** | 7-8 | React Flow dashboard with lineage failure map. Slack notification integration. **W3C PROV-O endpoint (F13). A2A Agent Card (F14). OpenLLMetry (F15).** OpenLineage event ingestion (if time). |
+| **Polish & Demo** | 9-10 | Demo scenario scripted and tested. **DeepEval tests on canonical scenario (F17).** README with architecture diagrams. Video recording. Edge case handling. |
 
 ---
 
@@ -338,18 +445,41 @@ Based on the six tracks and the obvious interpretations:
 - **Multi-graph reasoning.** Nobody else will combine metadata + temporal + code graphs.
 - **Temporal intelligence.** Graphiti's bi-temporal model is architecturally novel for metadata use cases.
 - **Actionable output.** Not just "here's what I found" but "here's the probable cause, the blast radius, the affected stakeholders, and the recommended fix."
+- **Self-improving over time.** CHRONOS learns from its own investigation traces — second-time incidents include past context automatically.
+- **Compliance-ready.** W3C PROV-O audit artifacts position CHRONOS for enterprise adoption beyond the hackathon.
+- **Standards-aligned.** OpenTelemetry GenAI SemConv, A2A Agent Card, W3C PROV-O — every choice maps to an industry standard.
+- **Observable from day one.** Langfuse trace trees show every investigation step, LLM call, and cost — production-grade from the start.
 - **Cross-track coverage.** Touching T-01 + T-02 + T-05 + T-06 demonstrates breadth and depth.
 
 ---
 
 ## 10. Open Questions
 
-1. **LLM model selection:** What's the optimal model for root cause synthesis via LiteLLM? Strong reasoning (Claude Sonnet, GPT-4.1) vs. fast/cheap (Groq Llama, Gemini Flash)? Consider using fast models for entity extraction and strong models for synthesis.
+1. ~~**LLM model selection:**~~ **RESOLVED.** Claude Sonnet for synthesis, Groq Llama 3.3 70B for extraction, GPT-4.1 Mini as fallback. Configured via LiteLLM model routing.
 
-2. **Graphiti entity ontology:** What custom entity types best represent metadata concepts? Proposed: `DataAsset`, `DataTest`, `Pipeline`, `Schema`, `Owner`, `CodeFile`, `Incident`. Needs validation against actual OpenMetadata event payloads.
+2. ~~**Graphiti entity ontology:**~~ **RESOLVED.** `DataAsset`, `DataTest`, `Pipeline`, `Schema`, `Owner`, `CodeFile`, `Incident` validated. New groups: `chronos-investigation-traces` and `chronos-step-telemetry` for self-referential memory.
 
-3. **Investigation depth limits:** How deep should lineage walking go before the agent stops? Configurable with a sensible default (5 hops upstream, 3 downstream). Need to prevent infinite loops on circular lineage.
+3. ~~**Investigation depth limits:**~~ **RESOLVED.** Configurable with sensible defaults (5 hops up, 3 down). Environment variables: `LINEAGE_DEPTH_UPSTREAM`, `LINEAGE_DEPTH_DOWNSTREAM`.
 
-4. **Demo scenario design:** What's the most compelling failure scenario to demonstrate? Proposed: Schema change in a source table cascading through a dbt model to break a dashboard used by executives. This hits all the emotional notes.
+4. ~~**Demo scenario design:**~~ **RESOLVED.** Schema change in stg_payments.sql cascading to executive dashboard. With v2.0 upgrades, demo also shows: (a) Langfuse trace tree, (b) PROV-O download, (c) second investigation referencing "this happened before" via self-referential memory.
 
-5. **GitNexus vs. Graphify priority:** If time is tight, which code analysis tool adds more value? GitNexus provides direct code-level blast radius (higher impact). Graphify provides architectural context (nice for enrichment). Recommendation: GitNexus first, Graphify if time permits.
+5. ~~**GitNexus vs. Graphify priority:**~~ **RESOLVED.** GitNexus first, Graphify if time permits.
+
+6. **Langfuse vs. inline observability:** Langfuse adds a Docker dependency (Postgres + app). For minimal deployments, should we support a "Langfuse-free" mode with file-based trace export? **Decision: Yes — make Langfuse optional via feature flag.**
+
+7. **PROV-O serialization format:** JSON-LD is most interoperable, Turtle is most human-readable, PROV-N is most compact. **Decision: Default to JSON-LD, support all three as query parameter.**
+
+---
+
+## 11. Gap-to-Feature Mapping (Reference)
+
+| Agentic Metadata Gap (The New Stack, Jan 2026) | CHRONOS Feature | Priority | Effort |
+|---|---|---|---|
+| 1. Agentic observability & tracing | F12: Langfuse | HIGH | 1 day |
+| 2. Vendor-neutral LLM instrumentation | F15: OpenLLMetry | MEDIUM | 0.5 day |
+| 3. Standardized telemetry schema | F16: OTel GenAI SemConv | LOW | Free w/ F15 |
+| 4. Continuous improvement / regression tests | F17: DeepEval | MEDIUM | 0.5 day |
+| 5. Retrieval quality evaluation | F18: RAGAs | LOW-MEDIUM | 1 day |
+| 6. Compliance-grade provenance | F13: W3C PROV-O | MEDIUM-HIGH | 0.5 day |
+| 7. Agent discovery & self-description | F14: A2A Agent Card | MEDIUM | 30 min |
+| 8. Self-referential metadata loop | F11: Graphiti self-memory | HIGHEST | 0.5 day |
