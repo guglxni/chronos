@@ -1,0 +1,32 @@
+name: CHRONOS Eval CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  eval:
+    name: RCA Quality Evaluation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CHRONOS with eval extras
+        run: pip install -e ".[eval]"
+
+      - name: Run unit tests (no API key required)
+        run: pytest tests/evals/ -v --tb=short -k "not (test_rca_accuracy or test_confidence_threshold or test_graphiti_context_recall)"
+
+      - name: Run RCA quality tests (requires API key)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pytest tests/evals/ -v --tb=short
+        continue-on-error: true  # Don't block PRs if API key not set in secrets

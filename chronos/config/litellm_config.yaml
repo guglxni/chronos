@@ -1,0 +1,21 @@
+model_list:
+  - model_name: chronos-synthesis
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: chronos-synthesis
+    litellm_params:
+      model: openai/gpt-4.1-mini
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: chronos-extraction
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+
+router_settings:
+  routing_strategy: fallback
+  model_group_alias:
+    chronos-synthesis: [anthropic/claude-sonnet-4-20250514, openai/gpt-4.1-mini]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

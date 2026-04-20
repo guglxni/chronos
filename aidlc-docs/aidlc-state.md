@@ -9,7 +9,7 @@
 - **Deadline**: April 26, 2026
 
 ## Current Phase
-**INCEPTION** — Planning & Architecture (v2.0 upgrade complete)
+**CONSTRUCTION** — Code Generation Complete (2026-04-21)
 
 ## Workflow Progress
 
@@ -28,30 +28,35 @@
     - v2.0: Unit 7 added as cross-cutting agentic metadata layer
 
 ### CONSTRUCTION PHASE
-- [ ] Unit 1: Core Infrastructure & Configuration
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 2: MCP Integration Layer & Event Ingestion
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 3: LangGraph Investigation Agent (10-step pipeline: Steps 0-9)
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 4: Output Layer (Slack + Incident Reports)
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 5: FastAPI REST API & SSE Streaming (+PROV-O +A2A)
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 6: React Frontend Dashboard (+ProvenanceDownload)
-  - [ ] Functional Design
-  - [ ] Code Generation
-- [ ] Unit 7: Agentic Metadata Infrastructure (Cross-Cutting)
-  - [ ] Functional Design
-  - [ ] Code Generation
-  - [ ] DeepEval / RAGAs tests
-  - [ ] GitHub Actions CI
-- [ ] Build and Test
+- [x] Unit 1: Core Infrastructure & Configuration
+  - [x] Functional Design
+  - [x] Code Generation — pyproject.toml, Dockerfile, docker-compose.yml, settings.py, litellm_config.yaml, all models, LLM client + prompts
+- [x] Unit 2: MCP Integration Layer & Event Ingestion
+  - [x] Functional Design
+  - [x] Code Generation — MCP client (JSON-RPC), 12 tool helpers, Graphiti ingestor, OpenLineage receiver, deduplicator
+- [x] Unit 3: LangGraph Investigation Agent (10-step pipeline: Steps 0-9)
+  - [x] Functional Design
+  - [x] Code Generation — InvestigationState TypedDict, 10 node files (steps 0-9), LangGraph state machine, Langfuse callback wiring
+- [x] Unit 4: Output Layer (Slack + Incident Reports)
+  - [x] Functional Design
+  - [x] Code Generation — Block Kit Slack notifier (severity/RCA emojis, owner mentions, action buttons), Graphify context extractor
+- [x] Unit 5: FastAPI REST API & SSE Streaming (+PROV-O +A2A)
+  - [x] Functional Design
+  - [x] Code Generation — main.py, all 5 route groups, PROV-O 3-format export, A2A agent card, SSE streaming, webhook receivers
+- [x] Unit 6: React Frontend Dashboard (+ProvenanceDownload)
+  - [x] Functional Design
+  - [x] Code Generation — Vite+React+TS, 10 components (React Flow lineage map, investigation replay, evidence chain, blast radius, provenance download), 3 pages (Dashboard, IncidentDetail 6-tab, Settings), TanStack Query hooks, SSE hook
+- [x] Unit 7: Agentic Metadata Infrastructure (Cross-Cutting)
+  - [x] Functional Design
+  - [x] Code Generation — W3C PROV-O generator (JSON-LD/Turtle/PROV-N), OpenLLMetry init, A2A agent card JSON
+  - [x] DeepEval / RAGAs tests — GEval + Faithfulness (F17), Context Recall/Precision (F18)
+  - [x] GitHub Actions CI — eval.yml with unit tests + LLM eval stages
+- [ ] Build and Test — Pending docker-compose up + integration verification
+
+### OPERATIONS PHASE
+- [ ] Docker Compose orchestration — docker-compose.yml ready, pending `docker compose up`
+- [ ] Demo scenario scripting — schema change injection script needed
+- [ ] Deployment documentation
 
 ### OPERATIONS PHASE
 - [ ] Docker Compose orchestration

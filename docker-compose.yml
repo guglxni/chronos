@@ -1,0 +1,260 @@
+version: "3.9"
+
+x-common-env: &common-env
+  env_file: .env
+
+volumes:
+  mysql-data:
+  es-data:
+  falkordb-data:
+  langfuse-db-data:
+  litellm-data:
+
+networks:
+  chronos-net:
+    driver: bridge
+
+services:
+  # ── MySQL (OpenMetadata backend) ────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: chronos-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: openmetadata_password
+      MYSQL_DATABASE: openmetadata_db
+      MYSQL_USER: openmetadata_user
+      MYSQL_PASSWORD: openmetadata_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-popenmetadata_password"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Elasticsearch ───────────────────────────────────────────────────────────
+  elasticsearch:
+    image: elasticsearch:8.15.0
+    container_name: chronos-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ── OpenMetadata Server ─────────────────────────────────────────────────────
+  openmetadata-server:
+    image: openmetadata/server:1.3.0-release
+    container_name: chronos-openmetadata
+    restart: unless-stopped
+    <<: *common-env
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=openmetadata_user
+      - DB_USER_PASSWORD=openmetadata_password
+      - DB_SCHEME=mysql+pymysql
+      - OM_DATABASE=openmetadata_db
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_SCHEME=http
+      - SERVER_HOST_API_URL=http://openmetadata-server:8585
+      - AUTHENTICATION_PROVIDER=no-auth
+    ports:
+      - "8585:8585"
+      - "8586:8586"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8585/api/v1/system/status || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 15
+      start_period: 120s
+
+  # ── FalkorDB (Graph DB for Graphiti) ────────────────────────────────────────
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: chronos-falkordb
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+      - "3001:3001"
+    volumes:
+      - falkordb-data:/data
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ── Graphiti MCP Server ─────────────────────────────────────────────────────
+  graphiti-mcp:
+    build:
+      context: graphiti-mcp/
+      dockerfile: Dockerfile
+    container_name: chronos-graphiti-mcp
+    restart: unless-stopped
+    <<: *common-env
+    environment:
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
+    ports:
+      - "8200:8200"
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8200/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── LiteLLM Proxy ───────────────────────────────────────────────────────────
+  litellm-proxy:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: chronos-litellm
+    restart: unless-stopped
+    <<: *common-env
+    volumes:
+      - ./chronos/config/litellm_config.yaml:/app/config.yaml:ro
+      - litellm-data:/app/data
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "4"]
+    ports:
+      - "4000:4000"
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Langfuse DB (Postgres) ───────────────────────────────────────────────────
+  langfuse-db:
+    image: postgres:16
+    container_name: chronos-langfuse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse_password
+      POSTGRES_DB: langfuse
+    ports:
+      - "5433:5432"
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ── Langfuse ─────────────────────────────────────────────────────────────────
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: chronos-langfuse
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://langfuse:langfuse_password@langfuse-db:5432/langfuse
+      - NEXTAUTH_URL=http://localhost:3002
+      - NEXTAUTH_SECRET=chronos-langfuse-secret
+      - SALT=chronos-langfuse-salt
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=true
+    ports:
+      - "3002:3000"
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/public/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ── CHRONOS Server ──────────────────────────────────────────────────────────
+  chronos-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chronos-server
+    restart: unless-stopped
+    <<: *common-env
+    ports:
+      - "8100:8100"
+    depends_on:
+      openmetadata-server:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+      graphiti-mcp:
+        condition: service_healthy
+      litellm-proxy:
+        condition: service_healthy
+      langfuse:
+        condition: service_healthy
+    networks:
+      - chronos-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8100/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── CHRONOS Frontend ────────────────────────────────────────────────────────
+  chronos-frontend:
+    build:
+      context: chronos-frontend/
+    container_name: chronos-frontend
+    restart: unless-stopped
+    <<: *common-env
+    environment:
+      - NEXT_PUBLIC_CHRONOS_API=http://localhost:8100
+    ports:
+      - "3000:3000"
+    depends_on:
+      chronos-server:
+        condition: service_healthy
+    networks:
+      - chronos-net

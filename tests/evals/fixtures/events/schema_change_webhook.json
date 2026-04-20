@@ -1,0 +1,20 @@
+{
+  "eventType": "TEST_CASE_FAILED",
+  "entityType": "testCase",
+  "entityId": "test-uuid-001",
+  "entityFullyQualifiedName": "sample_db.default.orders.column_values_to_be_not_null.order_id",
+  "userName": "openmetadata_bot",
+  "timestamp": 1745270400000,
+  "entity": {
+    "id": "test-uuid-001",
+    "name": "column_values_to_be_not_null",
+    "fullyQualifiedName": "sample_db.default.orders.column_values_to_be_not_null.order_id",
+    "entityLink": "<#E::table::sample_db.default.orders::columns::order_id>",
+    "testCaseResult": {
+      "testCaseStatus": "Failed",
+      "timestamp": 1745270400000,
+      "result": "Found 1523 null values in order_id column. Expected 0 nulls.",
+      "testResultValue": [{"value": "1523", "name": "nullCount"}]
+    }
+  }
+}

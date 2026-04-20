@@ -108,20 +108,36 @@ cd chronos
 
 # Copy environment template
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys (ANTHROPIC_API_KEY, GROQ_API_KEY, SLACK_WEBHOOK_URL)
 
-# Start the full stack
-docker-compose up -d
-
-# Seed sample data
-./scripts/seed_openmetadata.sh
-
-# Index code with GitNexus
-./scripts/index_gitnexus.sh ./sample-dbt-project
+# Start the full stack (10 containers)
+docker compose up -d
 
 # Open the dashboard
 open http://localhost:3000
+
+# Run the demo (inject a schema change failure and watch CHRONOS investigate)
+python scripts/demo_inject_failure.py
+
+# Or trigger manually via the API
+curl -X POST http://localhost:8100/api/v1/investigate \
+  -H "Content-Type: application/json" \
+  -d '{"entity_fqn": "sample_db.default.orders", "triggered_by": "manual"}'
+
+# Check the A2A agent card
+curl http://localhost:8100/.well-known/agent-card.json | jq .
 ```
+
+Services started by `docker compose up`:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| CHRONOS API | http://localhost:8100 | FastAPI + LangGraph agent |
+| React Dashboard | http://localhost:3000 | Investigation UI |
+| OpenMetadata | http://localhost:8585 | Metadata catalog |
+| Langfuse | http://localhost:3002 | Trace trees & evals |
+| FalkorDB Browser | http://localhost:3001 | Temporal graph explorer |
+| LiteLLM Proxy | http://localhost:4000 | LLM routing |
 
 ## Demo
 
