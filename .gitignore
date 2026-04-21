@@ -51,3 +51,12 @@ aidlc-docs/**/*.tmp
 
 # OS
 Thumbs.db
+
+# Internal review & planning artifacts (do NOT push to remote)
+CODE_REVIEW.md
+internal-docs/
+*.internal.md
+fix-plan-*.md
+review-*.md
+audit-*.md
+security-scan-*.md
