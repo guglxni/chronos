@@ -1,26 +1,46 @@
+@font-face {
+  font-family: "ChunkFive Print";
+  src: url("/fonts/ChunkFive-Regular.woff2") format("woff2"),
+       url("/fonts/ChunkFive-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CM Geom";
+  src: url("/fonts/CMGeom-Regular.woff2") format("woff2"),
+       url("/fonts/CMGeom-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   html {
-    @apply bg-gray-900 text-gray-100;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* PlayStation typographic voice: display sizes use a lighter weight. */
-    font-feature-settings: 'kern' 1, 'ss01' 1;
+    @apply bg-white text-chronos-black;
+    font-family: "CM Geom", system-ui, sans-serif;
+    font-feature-settings: 'kern' 1;
+  }
+
+  body {
+    @apply bg-white text-chronos-black;
+    font-family: "CM Geom", system-ui, sans-serif;
   }
 
   * {
     box-sizing: border-box;
   }
 
-  /* Light weight + tight tracking on display headlines — the "quiet authority" voice. */
-  h1, h2.display {
-    font-weight: 300;
-    letter-spacing: -0.015em;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "ChunkFive Print", Georgia, serif;
+    font-weight: normal;
   }
 
-  /* Respect prefers-reduced-motion across all GSAP + CSS transitions. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -36,25 +56,25 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-800;
+    background: #F5F5F5;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded-full;
+    background: #707072;
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+    background: #111111;
   }
 }
 
 @layer components {
+  /* Legacy dashboard components — preserved for backward compat */
   .card {
     @apply bg-gray-800 border border-gray-700 rounded-xl p-4;
   }
 
-  /* Primary CTA — PlayStation "power-on" hover: fill swaps to cyan + outer ring.
-     Scale stays subtle (1.04×) rather than the PS 1.2× so it fits in a dense dashboard. */
   .btn-primary {
     @apply relative px-4 py-2 bg-ps-blue text-white rounded-full text-sm font-medium
            transition-all duration-200 ease-out
@@ -63,6 +83,7 @@
            active:opacity-70
            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
     letter-spacing: 0.01em;
+    font-family: "CM Geom", system-ui, sans-serif;
   }
 
   .btn-secondary {
@@ -72,6 +93,7 @@
            focus:outline-none focus:shadow-ps-focus
            active:opacity-70
            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    font-family: "CM Geom", system-ui, sans-serif;
   }
 
   .btn-danger {
@@ -80,6 +102,7 @@
            hover:shadow-ps-ring hover:scale-[1.04]
            focus:outline-none focus:shadow-ps-focus
            active:opacity-70;
+    font-family: "CM Geom", system-ui, sans-serif;
   }
 
   .tab-active {
@@ -90,7 +113,6 @@
     @apply border-b-2 border-transparent text-gray-400 hover:text-gray-200 font-medium;
   }
 
-  /* Skeleton shimmer — used while incident lists / cards load. */
   .skeleton {
     background: linear-gradient(90deg,
       rgba(55, 65, 81, 0.4) 0%,
@@ -100,11 +122,11 @@
     @apply animate-shimmer rounded;
   }
 
-  /* Floating UI tooltip surface — reused by the <Tooltip> component. */
   .floating-tooltip {
     @apply bg-gray-900 text-gray-100 text-xs px-2 py-1 rounded-md shadow-xl border border-gray-700
            max-w-xs z-50 pointer-events-none;
     backdrop-filter: blur(4px);
+    font-family: "CM Geom", system-ui, sans-serif;
   }
 
   .floating-arrow {
@@ -113,13 +135,75 @@
     border-bottom-width: 1px;
     transform: rotate(45deg);
   }
+
+  /* Nike/CHRONOS design system buttons */
+  .chronos-btn-primary {
+    font-family: "CM Geom", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           text-white font-normal text-sm tracking-wide
+           transition-all duration-200 ease-out
+           hover:opacity-90 active:scale-95 cursor-pointer;
+    background-color: #0057FF;
+    border-radius: 30px;
+  }
+
+  .chronos-btn-black {
+    font-family: "CM Geom", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           font-normal text-sm tracking-wide
+           transition-all duration-200 ease-out
+           hover:opacity-90 active:scale-95 cursor-pointer;
+    background-color: #111111;
+    color: #FFFFFF;
+    border-radius: 30px;
+  }
+
+  .chronos-btn-outline {
+    font-family: "CM Geom", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           font-normal text-sm tracking-wide
+           transition-all duration-200 ease-out
+           hover:bg-white hover:text-chronos-black active:scale-95 cursor-pointer;
+    background-color: transparent;
+    color: #FFFFFF;
+    border: 1.5px solid #FFFFFF;
+    border-radius: 30px;
+  }
+
+  .chronos-btn-outline-dark {
+    font-family: "CM Geom", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           font-normal text-sm tracking-wide
+           transition-all duration-200 ease-out
+           hover:bg-chronos-black hover:text-white active:scale-95 cursor-pointer;
+    background-color: transparent;
+    color: #111111;
+    border: 1.5px solid #111111;
+    border-radius: 30px;
+  }
 }
 
-/* React Flow overrides */
+/* React Flow overrides — legacy dashboard */
 .react-flow__renderer {
   background: #1f2937 !important;
 }
 
 .react-flow__background {
   background-color: #1f2937 !important;
+}
+
+/* Terminal cursor blink */
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background-color: #0057FF;
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+
+/* Demo page smooth scroll */
+html {
+  scroll-behavior: smooth;
 }

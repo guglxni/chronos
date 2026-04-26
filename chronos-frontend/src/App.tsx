@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Activity, LayoutDashboard, Settings as SettingsIcon, Zap, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -7,20 +7,102 @@ import LoadingSpinner from './components/LoadingSpinner';
 import Tooltip from './components/Tooltip';
 import { api } from './lib/api';
 
-// Route-level code splitting: each page becomes its own chunk so the first
-// paint doesn't pay the cost of loading React Flow (Lineage) and GSAP (Detail)
-// when the user is still on the Dashboard.
+// Route-level code splitting
+const Demo = lazy(() => import('./pages/Demo'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const IncidentDetail = lazy(() => import('./pages/IncidentDetail'));
 const Settings = lazy(() => import('./pages/Settings'));
 
-function NavBar() {
+// Nav for the demo / landing page
+function DemoNav() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center px-6 md:px-12 transition-all duration-300"
+      style={{
+        backgroundColor: scrolled ? 'rgba(17,17,17,0.96)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.08)' : 'none',
+      }}
+    >
+      {/* Wordmark */}
+      <a
+        href="/"
+        className="font-heading text-white mr-auto"
+        style={{ fontSize: '22px', textDecoration: 'none' }}
+      >
+        CHRONOS
+      </a>
+
+      {/* Nav links */}
+      <div className="hidden md:flex items-center gap-8 mr-8">
+        <a
+          href="#how-it-works"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          How It Works
+        </a>
+        <a
+          href="#live-demo"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          Live Demo
+        </a>
+        <a
+          href="#architecture"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          Architecture
+        </a>
+        <a
+          href="https://github.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          View on GitHub
+        </a>
+        <a
+          href="https://chronos-api-0e8635fe890d.herokuapp.com/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          API Docs
+        </a>
+      </div>
+
+      <a
+        href="#live-demo"
+        className="chronos-btn-black text-sm px-5 py-2.5"
+        style={{ fontSize: '13px' }}
+      >
+        Try Demo →
+      </a>
+    </nav>
+  );
+}
+
+// Nav for the internal dashboard
+function DashboardNav() {
   const location = useLocation();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/90 backdrop-blur border-b border-gray-800 h-14 flex items-center px-6">
       {/* Logo */}
-      <NavLink to="/" className="flex items-center gap-2 mr-8 group">
+      <NavLink to="/app" className="flex items-center gap-2 mr-8 group">
         <div className="p-1.5 bg-ps-blue rounded-lg transition-all duration-200 group-hover:bg-ps-cyan group-hover:shadow-ps-ring group-hover:scale-110">
           <Zap className="w-4 h-4 text-white" />
         </div>
@@ -31,7 +113,7 @@ function NavBar() {
       {/* Nav links */}
       <div className="flex items-center gap-1 flex-1">
         <NavLink
-          to="/"
+          to="/app"
           end
           className={({ isActive }) =>
             clsx(
@@ -46,7 +128,7 @@ function NavBar() {
           Dashboard
         </NavLink>
         <NavLink
-          to="/settings"
+          to="/app/settings"
           className={({ isActive }) =>
             clsx(
               'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors',
@@ -79,24 +161,24 @@ function NavBar() {
           <span
             className={clsx(
               'flex items-center gap-1.5',
-              location.pathname === '/' ? 'text-emerald-400' : 'text-gray-500'
+              location.pathname === '/app' ? 'text-emerald-400' : 'text-gray-500'
             )}
           >
             <span className="relative flex h-2 w-2">
               <span
                 className={clsx(
                   'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-                  location.pathname === '/' ? 'bg-emerald-400' : 'bg-gray-500'
+                  location.pathname === '/app' ? 'bg-emerald-400' : 'bg-gray-500'
                 )}
               />
               <span
                 className={clsx(
                   'relative inline-flex rounded-full h-2 w-2',
-                  location.pathname === '/' ? 'bg-emerald-500' : 'bg-gray-600'
+                  location.pathname === '/app' ? 'bg-emerald-500' : 'bg-gray-600'
                 )}
               />
             </span>
-            {location.pathname === '/' ? 'Live' : 'Idle'}
+            {location.pathname === '/app' ? 'Live' : 'Idle'}
           </span>
         </div>
       </div>
@@ -104,23 +186,47 @@ function NavBar() {
   );
 }
 
-export default function App() {
+function AppRoutes() {
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith('/app');
+
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-gray-900 text-gray-100">
-        <NavBar />
-        <main className="pt-14">
+    <>
+      {isDashboard ? (
+        <div className="min-h-screen bg-gray-900 text-gray-100">
+          <DashboardNav />
+          <main className="pt-14">
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner size="lg" />}>
+                <Routes>
+                  <Route path="/app" element={<Dashboard />} />
+                  <Route path="/app/incidents/:id" element={<IncidentDetail />} />
+                  <Route path="/app/settings" element={<Settings />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </main>
+        </div>
+      ) : (
+        <div>
+          <DemoNav />
           <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner size="lg" />}>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/incidents/:id" element={<IncidentDetail />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/" element={<Demo />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
-        </main>
-      </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

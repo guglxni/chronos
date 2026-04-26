@@ -7,20 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        // PlayStation-inspired palette — our dark backgrounds stay the same,
-        // the accent moves from sky-* to ps-* so primary actions match the
-        // brand anchor (#0070cc) and hover states pulse cyan (#1eaedb).
+        // PlayStation-inspired palette — retained for backward compat
         ps: {
-          blue: '#0070cc',       // brand anchor
-          cyan: '#1eaedb',       // hover / focus only
-          link: '#1883fd',       // link hover on light
-          dark: '#0068bd',       // link at rest on light
-          darklink: '#53b1ff',   // link at rest on dark (our default)
-          orange: '#d53b00',     // commerce / destructive emphasis
-          charcoal: '#1f1f1f',   // body headline ink
+          blue: '#0070cc',
+          cyan: '#1eaedb',
+          link: '#1883fd',
+          dark: '#0068bd',
+          darklink: '#53b1ff',
+          orange: '#d53b00',
+          charcoal: '#1f1f1f',
         },
-        // Retained for drop-in compatibility with existing sky-* classes.
+        // Nike-inspired CHRONOS design system
         chronos: {
+          blue: '#0057FF',
+          black: '#111111',
+          gray: '#F5F5F5',
+          secondary: '#707072',
+          // Legacy sky-* compat shim
           50:  '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -34,12 +37,17 @@ export default {
         },
       },
       fontFamily: {
+        heading: ['"ChunkFive Print"', 'Georgia', 'serif'],
+        body: ['"CM Geom"', 'system-ui', 'sans-serif'],
+        mono: ['"CM Geom"', 'ui-monospace', 'monospace'],
         display: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fade-in': 'fadeIn 0.3s ease-out forwards',
         'shimmer': 'shimmer 1.5s linear infinite',
+        'blink': 'blink 1s step-end infinite',
+        'slide-up': 'slideUp 0.4s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -50,9 +58,16 @@ export default {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       boxShadow: {
-        // PlayStation "power-on ring" signature hover
         'ps-ring': '0 0 0 2px #0070cc',
         'ps-focus': '0 0 0 2px #0070cc, 0 0 0 4px rgba(0, 112, 204, 0.3)',
       },
