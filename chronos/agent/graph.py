@@ -3,11 +3,14 @@ LangGraph investigation state machine.
 
 Wires all 10 nodes in a linear pipeline and exposes a compiled graph plus a
 helper to create a Langfuse callback for each investigation run.
+
+Fix #1: Langfuse public/secret keys are SecretStr; unwrapped via secret_or_none().
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from langgraph.graph import END, StateGraph
 
@@ -22,12 +25,23 @@ from chronos.agent.nodes.rca_synthesis import rca_synthesis_node
 from chronos.agent.nodes.scope_failure import scope_failure_node
 from chronos.agent.nodes.temporal_diff import temporal_diff_node
 from chronos.agent.state import InvestigationState
-from chronos.config.settings import settings
+from chronos.config.settings import secret_or_none, settings
 
 logger = logging.getLogger("chronos.agent.graph")
 
+LangfuseCallback: Any = None
 
-def build_investigation_graph() -> StateGraph:
+try:
+    from langfuse.callback import CallbackHandler as _LangfuseCallback
+
+    LangfuseCallback = _LangfuseCallback
+except ImportError:
+    pass
+
+_investigation_graph_cache: Any = None
+
+
+def build_investigation_graph() -> Any:
     """Construct and compile the 10-step investigation graph."""
     graph = StateGraph(InvestigationState)
 
@@ -61,7 +75,15 @@ def build_investigation_graph() -> StateGraph:
     return graph.compile()
 
 
-def get_langfuse_callback(incident_id: str):
+def get_investigation_graph() -> Any:
+    """Return a lazily-compiled investigation graph instance."""
+    global _investigation_graph_cache
+    if _investigation_graph_cache is None:
+        _investigation_graph_cache = build_investigation_graph()
+    return _investigation_graph_cache
+
+
+def get_langfuse_callback(incident_id: str) -> Any:
     """
     Return a LangfuseCallbackHandler for the given investigation, or None if
     Langfuse is disabled or the package is unavailable.
@@ -69,23 +91,26 @@ def get_langfuse_callback(incident_id: str):
     if not settings.langfuse_enabled:
         return None
 
-    try:
-        from langfuse.callback import CallbackHandler as LangfuseCallback  # type: ignore
+    public_key = secret_or_none(settings.langfuse_public_key)
+    secret_key = secret_or_none(settings.langfuse_secret_key)
+    if not public_key or not secret_key:
+        logger.warning(
+            "Langfuse keys not configured — tracing disabled for incident %s", incident_id
+        )
+        return None
 
+    if LangfuseCallback is None:
+        logger.warning("langfuse package not installed — tracing disabled")
+        return None
+
+    try:
         return LangfuseCallback(
-            public_key=settings.langfuse_public_key,
-            secret_key=settings.langfuse_secret_key,
+            public_key=public_key,
+            secret_key=secret_key,
             host=settings.langfuse_host,
             session_id=incident_id,
             trace_name=f"chronos-investigation-{incident_id}",
         )
-    except ImportError:
-        logger.warning("langfuse not installed — Langfuse tracing disabled")
+    except (ValueError, RuntimeError) as exc:
+        logger.warning("Failed to create Langfuse callback: %s", exc)
         return None
-    except Exception as exc:
-        logger.warning(f"Failed to create Langfuse callback: {exc}")
-        return None
-
-
-# Module-level compiled graph (instantiated once at import time)
-investigation_graph = build_investigation_graph()

@@ -10,8 +10,10 @@ from __future__ import annotations
 import json
 import logging
 
-from chronos.models.events import OpenMetadataWebhookPayload
+import httpx
+
 from chronos.mcp.tools import graphiti_add_episode
+from chronos.models.events import OpenMetadataWebhookPayload
 
 logger = logging.getLogger("chronos.ingestion.graphiti")
 
@@ -57,10 +59,17 @@ async def ingest_om_event(payload: OpenMetadataWebhookPayload) -> bool:
         )
         success = bool(result)
         if success:
-            logger.debug(f"Ingested OM event: {name}")
+            logger.debug("Ingested OM event: %s", name)
         else:
-            logger.warning(f"Graphiti returned empty result for episode: {name}")
+            logger.warning("Graphiti returned empty result for episode: %s", name)
         return success
-    except Exception as exc:
-        logger.error(f"Failed to ingest OM event {name}: {exc}", exc_info=True)
+    except httpx.HTTPError as exc:
+        logger.error(
+            "Failed to ingest OM event %s (HTTP %s): %r", name, type(exc).__name__, exc
+        )
+        return False
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.error(
+            "Failed to ingest OM event %s (parse error): %s", name, exc
+        )
         return False

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -23,6 +24,9 @@ import EvidenceChain from '../components/EvidenceChain';
 import BlastRadiusPanel from '../components/BlastRadiusPanel';
 import ProvenanceDownload from '../components/ProvenanceDownload';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorBoundary from '../components/ErrorBoundary';
+import Tooltip from '../components/Tooltip';
+import { crossfadeIn, fillBar, countUp } from '../lib/motion';
 import type { IncidentStatus } from '../types';
 
 type Tab =
@@ -59,24 +63,56 @@ export default function IncidentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [actionLoading, setActionLoading] = useState<'ack' | 'resolve' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { incident, isLoading, error, refetch } = useIncidentDetail(id);
+  const queryClient = useQueryClient();
+  const { incident, isLoading, error } = useIncidentDetail(id);
 
-  async function handleAction(type: 'ack' | 'resolve') {
+  // GSAP refs — only populated when the overview tab is rendered.
+  const confidenceBarRef = useRef<HTMLDivElement | null>(null);
+  const confidenceTextRef = useRef<HTMLParagraphElement | null>(null);
+  const tabPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Crossfade tab content on switch.
+  useEffect(() => {
+    crossfadeIn(tabPanelRef.current);
+  }, [activeTab]);
+
+  // Animated fill of the confidence bar + count-up on the percentage text.
+  useEffect(() => {
+    if (activeTab !== 'overview' || !incident) return;
+    const pct = Math.round(incident.confidence * 100);
+    const barTween = fillBar(confidenceBarRef.current, pct, { duration: 0.9, delay: 0.15 });
+    const countCtl = countUp(confidenceTextRef.current, pct, { duration: 0.9, suffix: '%' });
+    return () => {
+      barTween?.kill();
+      countCtl?.kill();
+    };
+  }, [activeTab, incident]);
+
+  const ackMutation = useMutation({
+    mutationFn: (incidentId: string) => api.acknowledgeIncident(incidentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['incident', id] });
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: (incidentId: string) => api.resolveIncident(incidentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['incident', id] });
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  function handleAction(type: 'ack' | 'resolve') {
     if (!id) return;
-    setActionLoading(type);
     setActionError(null);
-    try {
-      if (type === 'ack') await api.acknowledgeIncident(id);
-      else await api.resolveIncident(id);
-      refetch();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Action failed');
-    } finally {
-      setActionLoading(null);
-    }
+    if (type === 'ack') ackMutation.mutate(id);
+    else resolveMutation.mutate(id);
   }
 
   if (isLoading) return <LoadingSpinner size="lg" />;
@@ -162,7 +198,7 @@ export default function IncidentDetail() {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               type="button"
-              onClick={() => refetch()}
+              onClick={() => void queryClient.invalidateQueries({ queryKey: ['incident', id] })}
               className="btn-secondary flex items-center gap-1.5"
             >
               <RefreshCw className="w-4 h-4" />
@@ -170,23 +206,23 @@ export default function IncidentDetail() {
             {incident.status !== 'acknowledged' && incident.status !== 'resolved' && (
               <button
                 type="button"
-                onClick={() => void handleAction('ack')}
-                disabled={actionLoading === 'ack'}
+                onClick={() => handleAction('ack')}
+                disabled={ackMutation.isPending}
                 className="btn-secondary flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {actionLoading === 'ack' ? 'Acknowledging…' : 'Acknowledge'}
+                {ackMutation.isPending ? 'Acknowledging…' : 'Acknowledge'}
               </button>
             )}
             {incident.status !== 'resolved' && (
               <button
                 type="button"
-                onClick={() => void handleAction('resolve')}
-                disabled={actionLoading === 'resolve'}
+                onClick={() => handleAction('resolve')}
+                disabled={resolveMutation.isPending}
                 className="btn-primary flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {actionLoading === 'resolve' ? 'Resolving…' : 'Resolve'}
+                {resolveMutation.isPending ? 'Resolving…' : 'Resolve'}
               </button>
             )}
           </div>
@@ -196,11 +232,28 @@ export default function IncidentDetail() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0 border-b border-gray-800 mb-6 overflow-x-auto">
+      {/* Tabs — ARIA-compliant tablist with keyboard nav */}
+      <div
+        role="tablist"
+        aria-label="Incident detail sections"
+        className="flex gap-0 border-b border-gray-800 mb-6 overflow-x-auto"
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          e.preventDefault();
+          const idx = TABS.findIndex((t) => t.key === activeTab);
+          const delta = e.key === 'ArrowRight' ? 1 : -1;
+          const next = TABS[(idx + delta + TABS.length) % TABS.length];
+          if (next) setActiveTab(next.key);
+        }}
+      >
         {TABS.map((tab) => (
           <button
             key={tab.key}
+            id={`tab-${tab.key}`}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            aria-controls={`tabpanel-${tab.key}`}
+            tabIndex={activeTab === tab.key ? 0 : -1}
             type="button"
             onClick={() => setActiveTab(tab.key)}
             className={clsx(
@@ -216,8 +269,14 @@ export default function IncidentDetail() {
         ))}
       </div>
 
-      {/* Tab content */}
-      <div>
+      {/* Tab content — crossfade on tab switch */}
+      <div
+        ref={tabPanelRef}
+        key={activeTab}
+        id={`tabpanel-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${activeTab}`}
+      >
         {activeTab === 'overview' && (
           <div className="space-y-4">
             {/* Root cause & confidence */}
@@ -234,20 +293,26 @@ export default function IncidentDetail() {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                   Confidence
                 </p>
-                <p
-                  className={clsx(
-                    'text-4xl font-bold',
-                    incident.confidence >= 0.8
-                      ? 'text-green-400'
-                      : incident.confidence >= 0.5
-                      ? 'text-yellow-400'
-                      : 'text-red-400'
-                  )}
+                <Tooltip
+                  content={`LLM synthesis confidence — ${Math.round(incident.confidence * 100)}% of 100`}
                 >
-                  {Math.round(incident.confidence * 100)}%
-                </p>
+                  <p
+                    ref={confidenceTextRef}
+                    className={clsx(
+                      'text-4xl font-light tabular-nums cursor-default',
+                      incident.confidence >= 0.8
+                        ? 'text-green-400'
+                        : incident.confidence >= 0.5
+                        ? 'text-yellow-400'
+                        : 'text-red-400'
+                    )}
+                  >
+                    {Math.round(incident.confidence * 100)}%
+                  </p>
+                </Tooltip>
                 <div className="w-full mt-2 h-2 bg-gray-700 rounded-full overflow-hidden">
                   <div
+                    ref={confidenceBarRef}
                     className={clsx(
                       'h-full rounded-full',
                       incident.confidence >= 0.8
@@ -256,7 +321,7 @@ export default function IncidentDetail() {
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
                     )}
-                    style={{ width: `${incident.confidence * 100}%` }}
+                    style={{ width: '0%' }}
                   />
                 </div>
               </div>
@@ -315,60 +380,101 @@ export default function IncidentDetail() {
                 <p className="text-sm text-gray-400 leading-relaxed">{incident.graphify_context}</p>
               </div>
             )}
+
+            {/* Recurring pattern — visible payoff of F11 self-referential memory */}
+            {incident.related_past_incidents && incident.related_past_incidents.length > 0 && (
+              <div className="card border border-amber-800/40">
+                <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Recurring Pattern — Seen Before ({incident.related_past_incidents.length})
+                </h2>
+                <ul className="space-y-2">
+                  {incident.related_past_incidents.slice(0, 5).map((past) => (
+                    <li
+                      key={past.incident_id}
+                      className="flex items-center justify-between text-sm text-gray-300 py-1.5 border-b border-gray-800 last:border-b-0"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-mono text-xs text-gray-400">{past.incident_id}</p>
+                        <p className="truncate text-gray-400">{past.affected_entity_fqn}</p>
+                      </div>
+                      <div className="ml-4 flex items-center gap-3 flex-shrink-0">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">
+                          {past.root_cause_category}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {format(new Date(past.detected_at), 'MMM d')}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'timeline' && (
-          <div className="card">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-sky-400" />
-              Investigation Timeline
-              <span className="text-xs text-gray-500 font-normal">
-                ({incident.investigation_timeline?.length ?? 0} steps)
-              </span>
-            </h2>
-            <InvestigationReplay timeline={incident.investigation_timeline ?? []} />
-          </div>
+          <ErrorBoundary>
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-sky-400" />
+                Investigation Timeline
+                <span className="text-xs text-gray-500 font-normal">
+                  ({incident.investigation_timeline?.length ?? 0} steps)
+                </span>
+              </h2>
+              <InvestigationReplay timeline={incident.investigation_timeline ?? []} />
+            </div>
+          </ErrorBoundary>
         )}
 
         {activeTab === 'lineage' && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-              <GitBranch className="w-4 h-4 text-sky-400" />
-              Lineage Failure Map
-            </h2>
-            <LineageFailureMap incident={incident} />
-          </div>
+          <ErrorBoundary>
+            <div>
+              <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <GitBranch className="w-4 h-4 text-sky-400" />
+                Lineage Failure Map
+              </h2>
+              <LineageFailureMap incident={incident} />
+            </div>
+          </ErrorBoundary>
         )}
 
         {activeTab === 'evidence' && (
-          <div className="card">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-sky-400" />
-              Evidence Chain
-            </h2>
-            <EvidenceChain evidence={incident.evidence_chain ?? []} />
-          </div>
+          <ErrorBoundary>
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-sky-400" />
+                Evidence Chain
+              </h2>
+              <EvidenceChain evidence={incident.evidence_chain ?? []} />
+            </div>
+          </ErrorBoundary>
         )}
 
         {activeTab === 'blast' && (
-          <div className="card">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-sky-400" />
-              Blast Radius
-            </h2>
-            <BlastRadiusPanel assets={incident.affected_downstream ?? []} />
-          </div>
+          <ErrorBoundary>
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-sky-400" />
+                Blast Radius
+              </h2>
+              <BlastRadiusPanel assets={incident.affected_downstream ?? []} />
+            </div>
+          </ErrorBoundary>
         )}
 
         {activeTab === 'provenance' && (
-          <div className="card">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-              <FileCode className="w-4 h-4 text-sky-400" />
-              Provenance Artifacts
-            </h2>
-            <ProvenanceDownload incidentId={incident.incident_id} />
-          </div>
+          <ErrorBoundary>
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <FileCode className="w-4 h-4 text-sky-400" />
+                Provenance Artifacts
+              </h2>
+              <ProvenanceDownload incidentId={incident.incident_id} />
+            </div>
+          </ErrorBoundary>
         )}
       </div>
     </div>

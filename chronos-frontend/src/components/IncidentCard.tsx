@@ -4,6 +4,7 @@ import { ChevronRight, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import type { IncidentReport, RootCauseCategory, IncidentStatus } from '../types';
 import SeverityBadge from './SeverityBadge';
+import Tooltip from './Tooltip';
 
 const ROOT_CAUSE_EMOJI: Record<RootCauseCategory, string> = {
   SCHEMA_CHANGE:        '🏗️',
@@ -40,8 +41,9 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
       type="button"
       onClick={() => navigate(`/incidents/${incident.incident_id}`)}
       className={clsx(
-        'w-full text-left card hover:border-gray-600 hover:bg-gray-750 transition-all cursor-pointer group',
-        'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-gray-900'
+        'w-full text-left card cursor-pointer group transition-all duration-200 ease-out',
+        'hover:border-ps-blue/60 hover:bg-gray-800/80 hover:-translate-y-0.5 hover:shadow-lg',
+        'focus:outline-none focus:shadow-ps-focus focus:border-ps-blue',
       )}
     >
       <div className="flex items-start gap-3">
@@ -64,16 +66,17 @@ export default function IncidentCard({ incident }: IncidentCardProps) {
             </span>
           </div>
 
-          {/* Entity FQN */}
-          <p
-            className="text-sm text-gray-200 font-mono truncate mb-1"
-            title={fqn}
-          >
-            {truncatedFqn}
-          </p>
+          {/* Entity FQN — Tooltip reveals full value when truncated */}
+          <Tooltip content={fqn} placement="top-start" disabled={fqn === truncatedFqn}>
+            <p className="text-sm text-gray-200 font-mono truncate mb-1">
+              {truncatedFqn}
+            </p>
+          </Tooltip>
 
           {/* Test name */}
-          <p className="text-xs text-gray-500 truncate mb-2">{incident.test_name}</p>
+          <Tooltip content={incident.test_name} placement="top-start">
+            <p className="text-xs text-gray-500 truncate mb-2">{incident.test_name}</p>
+          </Tooltip>
 
           {/* Bottom row */}
           <div className="flex items-center gap-4 text-xs text-gray-500">

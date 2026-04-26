@@ -10,8 +10,10 @@ from __future__ import annotations
 import json
 import logging
 
-from chronos.models.events import OpenLineageRunEvent
+import httpx
+
 from chronos.mcp.tools import graphiti_add_episode
+from chronos.models.events import OpenLineageRunEvent
 
 logger = logging.getLogger("chronos.ingestion.openlineage")
 
@@ -59,6 +61,18 @@ async def receive_openlineage_event(event: OpenLineageRunEvent) -> bool:
         else:
             logger.warning(f"Graphiti returned empty result for OL episode: {name}")
         return success
-    except Exception as exc:
-        logger.error(f"Failed to ingest OpenLineage event {name}: {exc}", exc_info=True)
+    except httpx.HTTPError as exc:
+        logger.error(
+            "Failed to ingest OpenLineage event %s (HTTP %s): %r",
+            name,
+            type(exc).__name__,
+            exc,
+        )
+        return False
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.error(
+            "Failed to ingest OpenLineage event %s (parse error): %s",
+            name,
+            exc,
+        )
         return False

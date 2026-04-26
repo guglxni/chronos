@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -61,4 +62,4 @@ class InvestigationTrigger(BaseModel):
     test_name: str = ""
     failure_message: str = ""
     triggered_by: str = "manual"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

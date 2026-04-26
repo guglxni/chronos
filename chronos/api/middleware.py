@@ -6,29 +6,31 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from chronos.config.settings import settings
+
 logger = logging.getLogger("chronos.api")
 
 
-async def logging_middleware(request: Request, call_next):
+async def logging_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     """Log every request with method, path, status code, and duration."""
     start = time.perf_counter()
-    try:
-        response = await call_next(request)
-    except Exception as exc:
-        duration_ms = (time.perf_counter() - start) * 1000
-        logger.error(
-            f"{request.method} {request.url.path} ERROR {duration_ms:.0f}ms — {exc}",
-            exc_info=True,
-        )
-        raise
+    response = await call_next(request)
 
     duration_ms = (time.perf_counter() - start) * 1000
     logger.info(
-        f"{request.method} {request.url.path} {response.status_code} {duration_ms:.0f}ms"
+        "%s %s %s %.0fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
     )
     return response
 
@@ -36,9 +38,18 @@ async def logging_middleware(request: Request, call_next):
 async def error_handler(request: Request, exc: Exception) -> Response:
     """Return a JSON error response for any unhandled exception."""
     logger.error(
-        f"Unhandled error on {request.method} {request.url.path}: {exc}",
+        "Unhandled error on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
         exc_info=True,
     )
+    if settings.environment == "production":
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_server_error"},
+        )
+
     return JSONResponse(
         status_code=500,
         content={

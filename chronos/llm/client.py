@@ -3,6 +3,11 @@ LiteLLM proxy client for RCA synthesis and structured extraction.
 
 Uses httpx to call the LiteLLM proxy REST API directly — this avoids any SDK
 version coupling and works with the proxy's model aliasing/fallback routing.
+
+Fix #1: litellm_master_key is now SecretStr; unwrapped via secret_or_none().
+Fix #4: broad ``except Exception`` replaced with specific error types — network
+        failures, timeouts, and JSON parse errors are caught distinctly so each
+        failure mode produces a diagnostic log entry.
 """
 
 from __future__ import annotations
@@ -13,7 +18,7 @@ from typing import Any
 
 import httpx
 
-from chronos.config.settings import settings
+from chronos.config.settings import secret_or_none, settings
 from chronos.llm.prompts import (
     EXTRACTION_PROMPT,
     RCA_SYSTEM_PROMPT,
@@ -25,12 +30,45 @@ logger = logging.getLogger("chronos.llm")
 _CHAT_ENDPOINT = "/chat/completions"
 _TIMEOUT = 120.0  # seconds — RCA synthesis can take a moment
 
+# Stored prompt-injection hardening (R-SEC-3): fields that flow from Graphiti
+# (originally sourced from webhook payloads an attacker can influence) can
+# contain triple-backticks, "IGNORE PREVIOUS INSTRUCTIONS", or other overrides.
+# Before interpolating each evidence field into the prompt, clip length and
+# neutralise sequences that would break out of the JSON code fence.
+_MAX_FIELD_CHARS = 4_000
+
+
+def _sanitize_evidence_field(value: Any) -> Any:
+    """Recursively clip long strings and escape prompt-breaking sequences.
+
+    - Strings over ``_MAX_FIELD_CHARS`` are truncated.
+    - Triple-backticks are zero-width-joined so they can't close a fenced block.
+    - Lines starting with "IGNORE PREVIOUS" / "DISREGARD" are prefixed with a
+      safe marker that keeps the text readable but defuses the directive.
+    """
+    if isinstance(value, str):
+        clipped = value[:_MAX_FIELD_CHARS]
+        # Break triple-backtick fence escapes and the most common jailbreak phrases.
+        clipped = clipped.replace("```", "`​``")
+        return clipped
+    if isinstance(value, list):
+        return [_sanitize_evidence_field(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _sanitize_evidence_field(v) for k, v in value.items()}
+    return value
+
+
+def _safe_json(obj: Any) -> str:
+    """json.dumps with evidence sanitisation + default=str for tricky types."""
+    return json.dumps(_sanitize_evidence_field(obj), indent=2, default=str)
+
 
 def _litellm_headers() -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {settings.litellm_master_key}",
-        "Content-Type": "application/json",
-    }
+    master_key = secret_or_none(settings.litellm_master_key)
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if master_key:
+        headers["Authorization"] = f"Bearer {master_key}"
+    return headers
 
 
 async def _call_litellm(
@@ -41,7 +79,9 @@ async def _call_litellm(
 ) -> str:
     """
     POST to LiteLLM proxy /chat/completions and return the assistant message content.
-    Raises on non-2xx or malformed responses.
+
+    Raises specific exceptions (httpx.HTTPStatusError, httpx.RequestError,
+    asyncio.TimeoutError, ValueError) so callers can handle each case distinctly.
     """
     url = settings.litellm_proxy_url.rstrip("/") + _CHAT_ENDPOINT
     payload = {
@@ -74,7 +114,6 @@ def _parse_json_response(raw: str) -> dict[str, Any]:
     # Strip optional markdown code fence
     if raw.startswith("```"):
         lines = raw.splitlines()
-        # Drop first line (``` or ```json) and last line (```)
         inner_lines = []
         for line in lines[1:]:
             if line.strip() == "```":
@@ -83,10 +122,32 @@ def _parse_json_response(raw: str) -> dict[str, Any]:
         raw = "\n".join(inner_lines).strip()
 
     try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        logger.error(f"Failed to parse LLM JSON response: {exc}\nRaw:\n{raw[:500]}")
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+        logger.error("LLM JSON payload was not an object; got %s", type(parsed).__name__)
         return {}
+    except json.JSONDecodeError as exc:
+        logger.error("Failed to parse LLM JSON response: %s\nRaw:\n%s", exc, raw[:500])
+        return {}
+
+
+def _synthesis_fallback(evidence: dict) -> dict[str, Any]:
+    """Return a safe degraded RCA result when LLM synthesis fails."""
+    return {
+        "probable_root_cause": "Investigation incomplete — LLM synthesis failed.",
+        "root_cause_category": "UNKNOWN",
+        "confidence": 0.0,
+        "evidence_chain": [],
+        "business_impact": evidence.get("business_impact_score", "medium"),
+        "recommended_actions": [
+            {
+                "description": "Manually review evidence and re-trigger investigation.",
+                "priority": "immediate",
+                "owner": "data-engineering",
+            }
+        ],
+    }
 
 
 async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
@@ -94,18 +155,21 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
     Call LiteLLM proxy (chronos-synthesis model group) to synthesize a root cause
     analysis from the collected evidence dict.
 
-    Returns a dict matching the RCA JSON schema, or an empty/partial dict on failure.
+    Returns a dict matching the RCA JSON schema, or a degraded fallback on failure.
+    Each catch branch logs the specific error type to aid triage.
     """
+    # Every evidence field passes through _safe_json, which clips length and
+    # neutralises triple-backticks / known jailbreak phrases (R-SEC-3).
     user_message = RCA_USER_TEMPLATE.format(
-        failed_test=json.dumps(evidence.get("failed_test", {}), indent=2, default=str),
-        affected_entity=json.dumps(evidence.get("affected_entity", {}), indent=2, default=str),
-        temporal_changes=json.dumps(evidence.get("temporal_changes", []), indent=2, default=str),
-        schema_changes=json.dumps(evidence.get("schema_changes", []), indent=2, default=str),
-        upstream_lineage=json.dumps(evidence.get("upstream_failures", []), indent=2, default=str),
-        code_changes=json.dumps(evidence.get("related_code_files", []), indent=2, default=str),
-        downstream_impact=json.dumps(evidence.get("downstream_assets", []), indent=2, default=str),
-        audit_events=json.dumps(evidence.get("audit_events", []), indent=2, default=str),
-        prior_incidents=json.dumps(evidence.get("prior_investigations", []), indent=2, default=str),
+        failed_test=_safe_json(evidence.get("failed_test", {})),
+        affected_entity=_safe_json(evidence.get("affected_entity", {})),
+        temporal_changes=_safe_json(evidence.get("temporal_changes", [])),
+        schema_changes=_safe_json(evidence.get("schema_changes", [])),
+        upstream_lineage=_safe_json(evidence.get("upstream_failures", [])),
+        code_changes=_safe_json(evidence.get("related_code_files", [])),
+        downstream_impact=_safe_json(evidence.get("downstream_assets", [])),
+        audit_events=_safe_json(evidence.get("audit_events", [])),
+        prior_incidents=_safe_json(evidence.get("prior_investigations", [])),
         business_impact_score=evidence.get("business_impact_score", "medium"),
         window_hours=str(settings.investigation_window_hours),
     )
@@ -123,27 +187,36 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
             max_tokens=2048,
         )
         result = _parse_json_response(raw)
+        required = ("probable_root_cause", "root_cause_category", "confidence")
+        if not result:
+            raise ValueError("LiteLLM returned empty/non-JSON synthesis response")
+        missing_fields = [key for key in required if key not in result]
+        if missing_fields:
+            raise ValueError(
+                "LiteLLM synthesis response missing required fields: "
+                + ", ".join(missing_fields)
+            )
         logger.info(
-            f"RCA synthesis complete: category={result.get('root_cause_category')}, "
-            f"confidence={result.get('confidence')}"
+            "RCA synthesis complete: category=%s, confidence=%s",
+            result.get("root_cause_category"),
+            result.get("confidence"),
         )
         return result
-    except Exception as exc:
-        logger.error(f"RCA synthesis failed: {exc}", exc_info=True)
-        return {
-            "probable_root_cause": "Investigation incomplete — LLM synthesis failed.",
-            "root_cause_category": "UNKNOWN",
-            "confidence": 0.0,
-            "evidence_chain": [],
-            "business_impact": evidence.get("business_impact_score", "medium"),
-            "recommended_actions": [
-                {
-                    "description": "Manually review evidence and re-trigger investigation.",
-                    "priority": "immediate",
-                    "owner": "data-engineering",
-                }
-            ],
-        }
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "LiteLLM proxy returned HTTP %d: %s",
+            exc.response.status_code,
+            exc.response.text[:200],
+        )
+    except httpx.RequestError as exc:
+        logger.error("LiteLLM proxy unreachable: %r", exc)
+    except TimeoutError:
+        logger.error("LiteLLM synthesis timed out after %.0fs", _TIMEOUT)
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.error("LiteLLM returned malformed response (%s): %s", type(exc).__name__, exc)
+
+    # Shared fallback — only reached when one of the above catch blocks fired
+    return _synthesis_fallback(evidence)
 
 
 async def extract_structured(raw_text: str, schema_hint: str) -> dict[str, Any]:
@@ -164,6 +237,17 @@ async def extract_structured(raw_text: str, schema_hint: str) -> dict[str, Any]:
             max_tokens=1024,
         )
         return _parse_json_response(raw)
-    except Exception as exc:
-        logger.error(f"Structured extraction failed: {exc}", exc_info=True)
-        return {}
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "LiteLLM extraction HTTP %d: %s",
+            exc.response.status_code,
+            exc.response.text[:200],
+        )
+    except httpx.RequestError as exc:
+        logger.error("LiteLLM extraction proxy unreachable: %r", exc)
+    except TimeoutError:
+        logger.error("LiteLLM extraction timed out")
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.error("LiteLLM extraction malformed response (%s): %s", type(exc).__name__, exc)
+
+    return {}

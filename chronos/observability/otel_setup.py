@@ -8,10 +8,21 @@ to the configured OTLP endpoint (Langfuse, Jaeger, etc.).
 from __future__ import annotations
 
 import logging
+import os
+from typing import Any
 
 from chronos.config.settings import settings
 
 logger = logging.getLogger("chronos.observability")
+
+Traceloop: Any = None
+
+try:
+    from traceloop.sdk import Traceloop as _Traceloop
+
+    Traceloop = _Traceloop
+except ImportError:
+    pass
 
 
 def setup_openllmetry() -> None:
@@ -26,9 +37,18 @@ def setup_openllmetry() -> None:
         logger.info("OTEL endpoint not configured — skipping OpenLLMetry setup")
         return
 
-    try:
-        from traceloop.sdk import Traceloop  # type: ignore
+    if Traceloop is None:
+        logger.warning(
+            "traceloop-sdk not installed — OpenLLMetry disabled. "
+            "Install with: pip install traceloop-sdk"
+        )
+        return
 
+    try:
+        # Required for gen_ai semantic conventions in OpenTelemetry >= 1.28
+        os.environ.setdefault(
+            "OTEL_SEMCONV_STABILITY_OPT_IN", "gen_ai_latest_experimental"
+        )
         Traceloop.init(
             app_name=settings.otel_service_name,
             api_endpoint=settings.otel_exporter_otlp_endpoint,
@@ -36,16 +56,13 @@ def setup_openllmetry() -> None:
             disable_batch=settings.environment == "development",
         )
         logger.info(
-            f"OpenLLMetry initialized: service={settings.otel_service_name}, "
-            f"endpoint={settings.otel_exporter_otlp_endpoint}"
+            "OpenLLMetry initialized: service=%s, endpoint=%s",
+            settings.otel_service_name,
+            settings.otel_exporter_otlp_endpoint,
         )
-    except ImportError:
+    except (RuntimeError, ValueError, OSError) as exc:
         logger.warning(
-            "traceloop-sdk not installed — OpenLLMetry disabled. "
-            "Install with: pip install traceloop-sdk"
-        )
-    except Exception as exc:
-        logger.warning(
-            f"OpenLLMetry setup failed (non-fatal): {exc}. "
-            "CHRONOS will continue without LLM tracing."
+            "OpenLLMetry setup failed (non-fatal): %s. "
+            "CHRONOS will continue without LLM tracing.",
+            exc,
         )

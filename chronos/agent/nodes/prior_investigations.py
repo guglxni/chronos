@@ -7,7 +7,7 @@ node can detect recurring patterns.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from chronos.agent.state import InvestigationState
 from chronos.mcp.tools import graphiti_search_facts, graphiti_search_nodes
@@ -18,7 +18,7 @@ GROUP_ID = "chronos-investigation-traces"
 async def prior_investigations_node(state: InvestigationState) -> InvestigationState:
     """Query Graphiti for past incidents and related nodes on the same entity."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     # Search for past incident facts linked to this entity
     prior_facts = await graphiti_search_facts(
@@ -40,7 +40,7 @@ async def prior_investigations_node(state: InvestigationState) -> InvestigationS
         "step": 0,
         "name": "prior_investigations",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Found {len(prior_facts)} prior investigation facts "
             f"and {len(related_nodes)} related nodes for {entity_fqn}"
@@ -50,5 +50,5 @@ async def prior_investigations_node(state: InvestigationState) -> InvestigationS
     return {
         **state,
         "prior_investigations": combined,
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

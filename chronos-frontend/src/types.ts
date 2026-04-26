@@ -10,7 +10,21 @@ export type RootCauseCategory =
 
 export type BusinessImpact = 'critical' | 'high' | 'medium' | 'low';
 export type IncidentStatus = 'open' | 'investigating' | 'resolved' | 'acknowledged';
-export type EvidenceSource = 'openmetadata' | 'graphiti' | 'gitnexus' | 'graphify' | 'audit_log';
+export type EvidenceSource =
+  | 'openmetadata'
+  | 'graphiti'
+  | 'gitnexus'
+  | 'graphify'
+  | 'audit_log'
+  | 'unknown';
+
+export interface RelatedIncident {
+  incident_id: string;
+  root_cause_category: RootCauseCategory;
+  affected_entity_fqn: string;
+  detected_at: string;
+  confidence: number;
+}
 
 export interface EvidenceItem {
   source: EvidenceSource;
@@ -57,11 +71,17 @@ export interface IncidentReport {
   confidence: number;
   evidence_chain: EvidenceItem[];
   affected_downstream: AffectedAsset[];
+  upstream_assets: AffectedAsset[];
   business_impact: BusinessImpact;
   recommended_actions: RemediationStep[];
   investigation_timeline: InvestigationTimelineEntry[];
-  related_past_incidents: unknown[];
+  related_past_incidents: RelatedIncident[];
   graphify_context: string;
+  business_impact_reasoning: string;
+  agent_version: string;
+  llm_model_used: string;
+  total_mcp_calls: number;
+  total_llm_tokens: number;
   status: IncidentStatus;
   acknowledged_by: string | null;
   resolved_by: string | null;

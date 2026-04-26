@@ -6,9 +6,9 @@ export default function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | '
   };
 
   return (
-    <div className="flex items-center justify-center p-8">
+    <div className="flex items-center justify-center p-8" role="status" aria-label="Loading">
       <div
-        className={`${sizeClasses[size]} border-gray-600 border-t-sky-500 rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border-gray-700 border-t-ps-blue rounded-full animate-spin`}
       />
     </div>
   );

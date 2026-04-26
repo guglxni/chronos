@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Activity, TrendingUp, CheckCircle2, RefreshCw, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { useIncidents } from '../hooks/useIncidents';
@@ -6,6 +6,7 @@ import IncidentCard from '../components/IncidentCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { api } from '../lib/api';
+import { countUp, staggerFadeIn } from '../lib/motion';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '',             label: 'All Statuses' },
@@ -31,21 +32,36 @@ function StatCard({
   icon,
   label,
   value,
+  numericValue,
   sub,
   color,
+  suffix,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
+  numericValue?: number | null;
   sub?: string;
   color: string;
+  suffix?: string;
 }) {
+  const numberRef = useRef<HTMLParagraphElement | null>(null);
+
+  useEffect(() => {
+    // Count-up only for real numbers — the "—" placeholder stays static.
+    if (numericValue == null) return;
+    const ctl = countUp(numberRef.current, numericValue, { duration: 0.9, suffix });
+    return () => ctl?.kill();
+  }, [numericValue, suffix]);
+
   return (
-    <div className="card flex items-center gap-4">
+    <div className="card flex items-center gap-4 transition-all duration-200 hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-lg">
       <div className={clsx('p-3 rounded-xl', color)}>{icon}</div>
       <div>
         <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
-        <p className="text-2xl font-bold text-white">{value}</p>
+        <p ref={numberRef} className="text-2xl font-bold text-white tabular-nums">
+          {value}
+        </p>
         {sub && <p className="text-xs text-gray-500">{sub}</p>}
       </div>
     </div>
@@ -84,12 +100,20 @@ export default function Dashboard() {
 
   const avgConfPct = stats ? Math.round((stats.avg_confidence ?? 0) * 100) : null;
 
+  // Stagger-fade the incident list on mount (and whenever the filtered set changes).
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!isLoading && incidents.length > 0) {
+      staggerFadeIn(listRef.current, '> *', { stagger: 0.04, y: 8 });
+    }
+  }, [isLoading, incidents.length]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Incident Dashboard</h1>
+          <h1 className="text-2xl font-light tracking-tight text-white">Incident Dashboard</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             Autonomous root cause analysis — auto-refreshes every 30s
           </p>
@@ -116,8 +140,8 @@ export default function Dashboard() {
 
       {/* Trigger Investigation Form */}
       {showTriggerForm && (
-        <div className="mb-6 card border border-sky-800/40 bg-sky-950/20">
-          <h2 className="text-sm font-semibold text-sky-300 mb-3 flex items-center gap-2">
+        <div className="mb-6 card border border-ps-blue/40 bg-ps-blue/5 animate-fade-in">
+          <h2 className="text-sm font-semibold text-ps-darklink mb-3 flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Trigger Manual Investigation
           </h2>
@@ -127,7 +151,7 @@ export default function Dashboard() {
               placeholder="Entity FQN (e.g. default.orders_table)"
               value={triggerFqn}
               onChange={(e) => setTriggerFqn(e.target.value)}
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-ps-blue focus:shadow-ps-focus transition-shadow"
             />
             <button
               type="submit"
@@ -146,15 +170,17 @@ export default function Dashboard() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          icon={<Activity className="w-5 h-5 text-sky-400" />}
+          icon={<Activity className="w-5 h-5 text-ps-darklink" />}
           label="Total Incidents"
           value={stats?.total_incidents ?? '—'}
-          color="bg-sky-900/40"
+          numericValue={stats?.total_incidents ?? null}
+          color="bg-ps-blue/20"
         />
         <StatCard
           icon={<AlertTriangle className="w-5 h-5 text-red-400" />}
           label="Open"
           value={stats?.open_count ?? '—'}
+          numericValue={stats?.open_count ?? null}
           sub="Requires attention"
           color="bg-red-900/40"
         />
@@ -162,6 +188,7 @@ export default function Dashboard() {
           icon={<TrendingUp className="w-5 h-5 text-orange-400" />}
           label="Critical"
           value={stats?.critical_count ?? '—'}
+          numericValue={stats?.critical_count ?? null}
           sub="High business impact"
           color="bg-orange-900/40"
         />
@@ -169,6 +196,8 @@ export default function Dashboard() {
           icon={<CheckCircle2 className="w-5 h-5 text-green-400" />}
           label="Avg Confidence"
           value={avgConfPct !== null ? `${avgConfPct}%` : '—'}
+          numericValue={avgConfPct}
+          suffix="%"
           sub="RCA accuracy"
           color="bg-green-900/40"
         />
@@ -179,7 +208,7 @@ export default function Dashboard() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-ps-blue focus:shadow-ps-focus transition-shadow"
         >
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -190,7 +219,7 @@ export default function Dashboard() {
         <select
           value={rootCauseFilter}
           onChange={(e) => setRootCauseFilter(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-ps-blue focus:shadow-ps-focus transition-shadow"
         >
           {ROOT_CAUSE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -230,7 +259,7 @@ export default function Dashboard() {
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div ref={listRef} className="space-y-3">
           {incidents.map((incident) => (
             <IncidentCard key={incident.incident_id} incident={incident} />
           ))}

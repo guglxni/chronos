@@ -7,17 +7,17 @@ reference the failing entity. Surfaces potential CODE_CHANGE root cause.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from chronos.agent.state import InvestigationState
-from chronos.mcp.tools import gitnexus_get_file_references, gitnexus_search_files
+from chronos.mcp.tools import gitnexus_get_commits, gitnexus_search_files
 
 
 async def code_blast_radius_node(state: InvestigationState) -> InvestigationState:
     """Search GitNexus for code files referencing the affected entity."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     # Use the table-name component (most specific without service prefix)
     parts = entity_fqn.split(".")
@@ -45,6 +45,9 @@ async def code_blast_radius_node(state: InvestigationState) -> InvestigationStat
                     if len(related_code_files) >= 20:
                         break
 
+        # Fetch recent commits referencing this entity
+        recent_commits = await gitnexus_get_commits(table_name, limit=10)
+
         code_dependencies = [
             f.get("path", "") for f in related_code_files if f.get("path")
         ]
@@ -53,7 +56,7 @@ async def code_blast_radius_node(state: InvestigationState) -> InvestigationStat
         "step": 4,
         "name": "code_blast_radius",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Found {len(related_code_files)} related code files "
             f"for entity '{table_name}'"
@@ -65,5 +68,5 @@ async def code_blast_radius_node(state: InvestigationState) -> InvestigationStat
         "related_code_files": related_code_files,
         "recent_commits": recent_commits,
         "code_dependencies": code_dependencies,
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

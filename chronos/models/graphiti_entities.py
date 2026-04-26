@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -31,7 +32,7 @@ class SchemaStateEntity(BaseModel):
     column_count: int = 0
     column_names: list[str] = Field(default_factory=list)
     column_types: dict[str, str] = Field(default_factory=dict)
-    captured_at: datetime = Field(default_factory=datetime.utcnow)
+    captured_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class PipelineRunEntity(BaseModel):
@@ -52,7 +53,7 @@ class IncidentEntity(BaseModel):
     affected_entity_fqn: str
     test_name: str
     resolved: bool = False
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     summary: str = ""
 
 

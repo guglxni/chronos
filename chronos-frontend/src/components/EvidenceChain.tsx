@@ -13,6 +13,7 @@ const SOURCE_CONFIG: Record<EvidenceSource, { label: string; classes: string }> 
   gitnexus:     { label: 'GitNexus',     classes: 'bg-green-900/60 text-green-300 border border-green-700' },
   graphify:     { label: 'Graphify',     classes: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700' },
   audit_log:    { label: 'Audit Log',    classes: 'bg-orange-900/60 text-orange-300 border border-orange-700' },
+  unknown:      { label: 'Unknown',      classes: 'bg-gray-800/60 text-gray-400 border border-gray-700' },
 };
 
 function ConfidenceBar({ value }: { value: number }) {

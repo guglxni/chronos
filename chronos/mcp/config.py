@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 from chronos.config.settings import settings
 
 
-class MCPServerType(str, Enum):
+class MCPServerType(StrEnum):
     OPENMETADATA = "openmetadata"
     GRAPHITI = "graphiti"
     GITNEXUS = "gitnexus"

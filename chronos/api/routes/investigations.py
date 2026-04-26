@@ -4,6 +4,14 @@ Manual investigation trigger and SSE streaming endpoints.
 Allows external systems and the frontend to:
   1. Manually trigger an investigation (POST /api/v1/investigate)
   2. Stream its progress in real-time via SSE (GET /api/v1/investigations/{id}/stream)
+
+Security & reliability improvements:
+- Rate limits on both endpoints to prevent abuse (H4).
+- SSE queue is bounded (maxsize=100) and always cleaned up in try/finally (H5).
+- Unknown incident IDs get a 404 instead of silently creating orphan queues.
+- Orphan queues (investigation completed but nobody connected to stream) are
+  evicted after _SSE_ORPHAN_TTL seconds via a per-investigation cleanup task.
+- Stream endpoint requires a one-time token issued at trigger time (A2).
 """
 
 from __future__ import annotations
@@ -12,155 +20,182 @@ import asyncio
 import json
 import logging
 import uuid
-from datetime import datetime
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query, Request
 from sse_starlette.sse import EventSourceResponse
 
+from chronos.api.rate_limit import limiter
+from chronos.api.schemas import InvestigationTriggerResponse
+from chronos.core.investigation_runner import run_investigation
 from chronos.models.events import InvestigationTrigger
 
 router = APIRouter(prefix="/api/v1", tags=["investigations"])
 logger = logging.getLogger("chronos.investigations")
 
-# SSE event queues keyed by incident_id
+# SSE event queues keyed by incident_id.
 # A None sentinel signals stream completion to the consumer.
+# Queues are bounded at 100 events to cap memory consumption per investigation.
 _sse_queues: dict[str, asyncio.Queue] = {}
+# One-time stream tokens — issued at trigger time, valid for the queue lifetime.
+# Validated on every GET /stream request; removed when the queue is evicted.
+_sse_tokens: dict[str, str] = {}
+_active_tasks: set[asyncio.Task] = set()
 
 _SSE_HEARTBEAT_INTERVAL = 25.0  # seconds
+_SSE_QUEUE_MAXSIZE = 100
+# How long to keep an unconsumed queue after the investigation completes.
+# If no SSE client connected during this window, the queue is a memory leak.
+_SSE_ORPHAN_TTL = 60.0  # seconds
 
 
-@router.post("/investigate")
-async def trigger_investigation(trigger: InvestigationTrigger):
+async def _evict_orphan_queue(incident_id: str) -> None:
+    """
+    Remove the SSE queue and token for incident_id if never consumed.
+
+    Called as a follow-up task after each investigation completes.  If a stream
+    client connected normally the queue is already gone (removed in event_generator's
+    finally block), so this becomes a no-op.  Without this, every investigation that
+    has no SSE consumer leaks one bounded Queue indefinitely.
+    """
+    await asyncio.sleep(_SSE_ORPHAN_TTL)
+    removed = _sse_queues.pop(incident_id, None)
+    _sse_tokens.pop(incident_id, None)
+    if removed is not None:
+        logger.debug(
+            "Evicted unconsumed SSE queue for incident %s (no client connected within %.0fs)",
+            incident_id,
+            _SSE_ORPHAN_TTL,
+        )
+
+
+def _on_investigation_done(incident_id: str) -> Any:
+    """
+    Return a task done-callback that schedules orphan queue cleanup.
+
+    Uses a closure so the callback captures the correct incident_id even when
+    multiple investigations are in flight simultaneously.
+    """
+    def _cb(_task: asyncio.Task) -> None:
+        cleanup = asyncio.create_task(
+            _evict_orphan_queue(incident_id),
+            name=f"sse-cleanup-{incident_id}",
+        )
+        _active_tasks.add(cleanup)
+        cleanup.add_done_callback(_active_tasks.discard)
+
+    return _cb
+
+
+@router.post("/investigate", response_model=InvestigationTriggerResponse)
+@limiter.limit("5/minute")
+async def trigger_investigation(request: Request, trigger: InvestigationTrigger) -> dict[str, Any]:
     """
     Manually trigger a CHRONOS investigation.
 
-    Returns immediately with an incident_id and SSE stream URL.
-    The investigation runs asynchronously in the background.
+    Returns immediately with an incident_id, SSE stream URL, and a one-time
+    stream_token.  Pass the token as ?stream_token= when opening the SSE stream.
+    Rate-limited to 5 triggers/minute per IP to prevent queue flooding.
     """
-    from chronos.api.routes.webhooks import _run_investigation
-
     incident_id = str(uuid.uuid4())
+    stream_token = str(uuid.uuid4())
 
-    # Pre-create an SSE queue so clients can connect before the task starts
-    _sse_queues[incident_id] = asyncio.Queue()
+    # Pre-create the SSE queue so clients can attach before the first event fires
+    _sse_queues[incident_id] = asyncio.Queue(maxsize=_SSE_QUEUE_MAXSIZE)
+    _sse_tokens[incident_id] = stream_token
 
-    asyncio.create_task(
-        _run_investigation_with_sse(trigger, incident_id)
+    task = asyncio.create_task(
+        run_investigation(trigger, incident_id, _sse_queues[incident_id]),
+        name=f"investigation-{incident_id}",
     )
+    _active_tasks.add(task)
+    task.add_done_callback(_active_tasks.discard)
+    # Schedule TTL eviction of the queue in case no SSE client ever connects
+    task.add_done_callback(_on_investigation_done(incident_id))
 
     return {
         "status": "triggered",
         "incident_id": incident_id,
         "entity_fqn": trigger.entity_fqn,
         "stream_url": f"/api/v1/investigations/{incident_id}/stream",
+        "stream_token": stream_token,
     }
 
 
 @router.get("/investigations/{incident_id}/stream")
-async def stream_investigation(incident_id: str):
+@limiter.limit("30/minute")
+async def stream_investigation(
+    request: Request,
+    incident_id: str,
+    stream_token: str = Query(..., description="One-time token issued by POST /investigate"),
+) -> EventSourceResponse:
     """
     Stream investigation progress via Server-Sent Events.
 
-    Events have a ``data`` field containing a JSON object with at minimum:
-    - ``status``: 'connected' | 'step_complete' | 'complete' | 'error' | 'heartbeat'
+    Requires the stream_token returned by POST /investigate.  The token is
+    valid for the lifetime of the investigation queue and must be passed as
+    ?stream_token=<token>.
+
+    Events carry a ``data`` field containing a JSON object with at minimum:
+    - ``status``: 'connected' | 'update' | 'complete' | 'error' | 'heartbeat'
     - ``incident_id``: the investigation ID
+
+    The queue for this incident_id is always cleaned up when the generator exits
+    (normal completion, client disconnect, or server error).
     """
     queue = _sse_queues.get(incident_id)
     if queue is None:
-        # Client connected after investigation already finished or ID unknown
-        queue = asyncio.Queue()
-        _sse_queues[incident_id] = queue
+        raise HTTPException(
+            status_code=404,
+            detail=f"No active investigation stream for ID '{incident_id}'. "
+                   "Trigger an investigation first.",
+        )
 
-    async def event_generator():
-        # Initial connection acknowledgement
-        yield {
-            "event": "connected",
-            "data": json.dumps(
-                {"status": "connected", "incident_id": incident_id}
-            ),
-        }
+    expected_token = _sse_tokens.get(incident_id)
+    if expected_token is None or stream_token != expected_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired stream token.",
+        )
 
-        while True:
-            try:
-                event = await asyncio.wait_for(
-                    queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL
-                )
-                if event is None:
-                    # Sentinel — investigation complete
+    async def event_generator() -> AsyncGenerator[dict[str, str], None]:
+        try:
+            # Initial connection acknowledgement
+            yield {
+                "event": "connected",
+                "data": json.dumps(
+                    {"status": "connected", "incident_id": incident_id}
+                ),
+            }
+
+            while True:
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL
+                    )
+                    if event is None:
+                        # Sentinel — investigation pipeline finished
+                        yield {
+                            "event": "complete",
+                            "data": json.dumps(
+                                {"status": "complete", "incident_id": incident_id}
+                            ),
+                        }
+                        break
+                    yield {"event": "update", "data": json.dumps(event)}
+                except TimeoutError:
+                    # Heartbeat keeps the HTTP connection alive
                     yield {
-                        "event": "complete",
+                        "event": "heartbeat",
                         "data": json.dumps(
-                            {"status": "complete", "incident_id": incident_id}
+                            {"status": "heartbeat", "incident_id": incident_id}
                         ),
                     }
-                    break
-                yield {"event": "update", "data": json.dumps(event)}
-            except asyncio.TimeoutError:
-                # Heartbeat to keep the connection alive
-                yield {
-                    "event": "heartbeat",
-                    "data": json.dumps(
-                        {"status": "heartbeat", "incident_id": incident_id}
-                    ),
-                }
+        finally:
+            # Always remove the queue and token so stale entries don't accumulate
+            _sse_queues.pop(incident_id, None)
+            _sse_tokens.pop(incident_id, None)
+            logger.debug("SSE queue cleaned up for incident %s", incident_id)
 
     return EventSourceResponse(event_generator())
-
-
-async def _run_investigation_with_sse(
-    trigger: InvestigationTrigger,
-    incident_id: str,
-) -> None:
-    """
-    Run investigation and push step progress events to the SSE queue.
-    """
-    from chronos.agent.graph import get_langfuse_callback, investigation_graph
-
-    queue = _sse_queues.get(incident_id, asyncio.Queue())
-
-    initial_state = {
-        "incident_id": incident_id,
-        "triggered_at": trigger.timestamp,
-        "entity_fqn": trigger.entity_fqn,
-        "test_name": trigger.test_name,
-        "failure_message": trigger.failure_message,
-        "step_results": [],
-        "investigation_start": datetime.utcnow(),
-    }
-
-    callbacks = []
-    langfuse_cb = get_langfuse_callback(incident_id)
-    if langfuse_cb:
-        callbacks.append(langfuse_cb)
-
-    config = {"callbacks": callbacks} if callbacks else {}
-
-    try:
-        result = await investigation_graph.ainvoke(initial_state, config=config)
-
-        # Store completed incident
-        from chronos.api.routes.incidents import store_incident
-
-        incident_report = result.get("incident_report")
-        if incident_report:
-            store_incident(incident_report)
-
-        # Push final report to SSE stream
-        await queue.put(
-            {
-                "status": "investigation_complete",
-                "incident_id": incident_id,
-                "root_cause_category": incident_report.get("root_cause_category") if incident_report else None,
-                "confidence": incident_report.get("confidence") if incident_report else None,
-            }
-        )
-
-        logger.info(f"Investigation {incident_id} complete (SSE)")
-    except Exception as exc:
-        logger.error(f"Investigation {incident_id} failed: {exc}", exc_info=True)
-        await queue.put(
-            {"status": "error", "incident_id": incident_id, "error": str(exc)}
-        )
-    finally:
-        # Push sentinel to close SSE stream
-        await queue.put(None)

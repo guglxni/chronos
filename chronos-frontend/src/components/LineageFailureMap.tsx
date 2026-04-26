@@ -26,24 +26,40 @@ function getTierColor(tier: string): string {
   return TIER_COLOR[tier] ?? '#6b7280';
 }
 
+function shortLabel(fqn: string, display: string): string {
+  if (display) return display;
+  const parts = fqn.split('.');
+  return parts[parts.length - 1] || fqn;
+}
+
 export default function LineageFailureMap({ incident }: LineageFailureMapProps) {
   const { nodes, edges } = useMemo(() => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    const affectedId = 'affected';
-    const affectedParts = incident.affected_entity_fqn.split('.');
-    const affectedLabel = affectedParts[affectedParts.length - 1] || incident.affected_entity_fqn;
+    const upstream = incident.upstream_assets ?? [];
+    const downstream = incident.affected_downstream ?? [];
 
-    // Affected (root) node — center
+    // Nothing to show when there's no lineage data at all
+    if (upstream.length === 0 && downstream.length === 0 && incident.evidence_chain.length === 0) {
+      return { nodes: [], edges: [] };
+    }
+
+    const affectedId = 'affected';
+    const affectedLabel = shortLabel(incident.affected_entity_fqn, '');
+
+    // ── Affected (root) node — center ─────────────────────────────────────────
     nodes.push({
       id: affectedId,
-      position: { x: 400, y: 200 },
+      position: { x: 420, y: 200 },
       data: {
         label: (
           <div className="text-center">
             <div className="text-xs font-bold text-red-300 mb-0.5">AFFECTED</div>
-            <div className="text-xs text-white font-mono truncate max-w-[140px]" title={incident.affected_entity_fqn}>
+            <div
+              className="text-xs text-white font-mono truncate max-w-[140px]"
+              title={incident.affected_entity_fqn}
+            >
               {affectedLabel}
             </div>
           </div>
@@ -59,51 +75,66 @@ export default function LineageFailureMap({ incident }: LineageFailureMapProps) 
       },
     });
 
-    // Upstream mock node (if we can infer from context)
-    const upstreamId = 'upstream-source';
-    nodes.push({
-      id: upstreamId,
-      position: { x: 100, y: 200 },
-      data: {
-        label: (
-          <div className="text-center">
-            <div className="text-xs text-gray-400 mb-0.5">UPSTREAM</div>
-            <div className="text-xs text-gray-300 font-mono">Source</div>
-          </div>
-        ),
-      },
-      style: {
-        background: '#1f2937',
-        border: '1.5px solid #4b5563',
-        borderRadius: 8,
-        padding: 8,
-        minWidth: 120,
-        color: '#fff',
-      },
-    });
+    // ── Upstream nodes (left side) ─────────────────────────────────────────────
+    if (upstream.length > 0) {
+      upstream.forEach((asset, i) => {
+        const nodeId = `upstream-${i}`;
+        const label = shortLabel(asset.fqn, asset.display_name);
+        const tier = asset.tier || 'Untiered';
+        const color = getTierColor(tier);
+        const row = Math.floor(i / 2);
+        const col = i % 2;
 
-    edges.push({
-      id: `${upstreamId}->${affectedId}`,
-      source: upstreamId,
-      target: affectedId,
-      label: 'feeds',
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#6b7280' },
-      style: { stroke: '#6b7280' },
-      labelStyle: { fill: '#9ca3af', fontSize: 10 },
-      labelBgStyle: { fill: '#1f2937' },
-    });
+        nodes.push({
+          id: nodeId,
+          position: { x: 30 + col * 170, y: 80 + row * 120 },
+          data: {
+            label: (
+              <div className="text-center">
+                <div className="text-xs mb-0.5" style={{ color }}>
+                  {tier}
+                </div>
+                <div
+                  className="text-xs text-gray-300 font-mono truncate max-w-[120px]"
+                  title={asset.fqn}
+                >
+                  {label}
+                </div>
+                {asset.owners.length > 0 && (
+                  <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[120px]">
+                    {asset.owners[0]}
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          style: {
+            background: '#1a2332',
+            border: `1.5px solid ${color}`,
+            borderRadius: 8,
+            padding: 6,
+            minWidth: 140,
+            color: '#fff',
+          },
+        });
 
-    // Downstream nodes
-    const downstream = incident.affected_downstream ?? [];
-
-    if (downstream.length === 0 && incident.evidence_chain.length === 0) {
-      return { nodes: [], edges: [] };
+        edges.push({
+          id: `${nodeId}->${affectedId}`,
+          source: nodeId,
+          target: affectedId,
+          label: 'feeds',
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#6b7280' },
+          style: { stroke: '#6b7280' },
+          labelStyle: { fill: '#9ca3af', fontSize: 10 },
+          labelBgStyle: { fill: '#1f2937' },
+        });
+      });
     }
 
+    // ── Downstream nodes (right side) ─────────────────────────────────────────
     downstream.forEach((asset, i) => {
       const nodeId = `downstream-${i}`;
-      const parts = asset.fqn.split('.');
-      const label = parts[parts.length - 1] || asset.display_name;
+      const label = shortLabel(asset.fqn, asset.display_name);
       const tier = asset.tier || 'Untiered';
       const color = getTierColor(tier);
       const row = Math.floor(i / 3);
@@ -111,7 +142,7 @@ export default function LineageFailureMap({ incident }: LineageFailureMapProps) 
 
       nodes.push({
         id: nodeId,
-        position: { x: 680 + col * 180, y: 80 + row * 120 },
+        position: { x: 700 + col * 180, y: 80 + row * 120 },
         data: {
           label: (
             <div className="text-center">

@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-common-env: &common-env
   env_file: .env
 
@@ -21,18 +19,18 @@ services:
     container_name: chronos-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: openmetadata_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: openmetadata_db
       MYSQL_USER: openmetadata_user
-      MYSQL_PASSWORD: openmetadata_password
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
       - chronos-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-popenmetadata_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -53,7 +51,7 @@ services:
         soft: -1
         hard: -1
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
     networks:
@@ -75,7 +73,7 @@ services:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=openmetadata_user
-      - DB_USER_PASSWORD=openmetadata_password
+      - DB_USER_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - DB_SCHEME=mysql+pymysql
       - OM_DATABASE=openmetadata_db
       - ELASTICSEARCH_HOST=elasticsearch
@@ -84,8 +82,8 @@ services:
       - SERVER_HOST_API_URL=http://openmetadata-server:8585
       - AUTHENTICATION_PROVIDER=no-auth
     ports:
-      - "8585:8585"
-      - "8586:8586"
+      - "127.0.0.1:8585:8585"
+      - "127.0.0.1:8586:8586"
     depends_on:
       mysql:
         condition: service_healthy
@@ -106,8 +104,8 @@ services:
     container_name: chronos-falkordb
     restart: unless-stopped
     ports:
-      - "6379:6379"
-      - "3001:3001"
+      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:3001:3001"
     volumes:
       - falkordb-data:/data
     networks:
@@ -131,7 +129,7 @@ services:
       - FALKORDB_HOST=falkordb
       - FALKORDB_PORT=6379
     ports:
-      - "8200:8200"
+      - "127.0.0.1:8200:8200"
     depends_on:
       falkordb:
         condition: service_healthy
@@ -155,7 +153,7 @@ services:
       - litellm-data:/app/data
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "4"]
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     networks:
       - chronos-net
     healthcheck:
@@ -172,10 +170,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: langfuse
-      POSTGRES_PASSWORD: langfuse_password
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:?Set LANGFUSE_DB_PASSWORD in .env}
       POSTGRES_DB: langfuse
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - langfuse-db-data:/var/lib/postgresql/data
     networks:
@@ -193,13 +191,13 @@ services:
     container_name: chronos-langfuse
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://langfuse:langfuse_password@langfuse-db:5432/langfuse
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD}@langfuse-db:5432/langfuse
       - NEXTAUTH_URL=http://localhost:3002
-      - NEXTAUTH_SECRET=chronos-langfuse-secret
-      - SALT=chronos-langfuse-salt
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:?Set LANGFUSE_NEXTAUTH_SECRET in .env}
+      - SALT=${LANGFUSE_SALT:?Set LANGFUSE_SALT in .env}
       - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=true
     ports:
-      - "3002:3000"
+      - "127.0.0.1:3002:3000"
     depends_on:
       langfuse-db:
         condition: service_healthy
@@ -246,11 +244,12 @@ services:
   chronos-frontend:
     build:
       context: chronos-frontend/
+      # VITE_API_URL is baked into the Vite bundle at build time.
+      # Use the host-published port so browser requests resolve correctly.
+      args:
+        VITE_API_URL: http://localhost:8100
     container_name: chronos-frontend
     restart: unless-stopped
-    <<: *common-env
-    environment:
-      - NEXT_PUBLIC_CHRONOS_API=http://localhost:8100
     ports:
       - "3000:3000"
     depends_on:

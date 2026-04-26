@@ -16,7 +16,7 @@ router = APIRouter(tags=["discovery"])
 
 
 @router.get("/.well-known/agent-card.json")
-async def get_agent_card():
+async def get_agent_card() -> JSONResponse:
     """Return the CHRONOS A2A Agent Card."""
     card = {
         "schemaVersion": "1.0",

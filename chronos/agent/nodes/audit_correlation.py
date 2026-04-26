@@ -8,7 +8,7 @@ Flags suspicious operations (updates, deletions, schema changes).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from chronos.agent.state import InvestigationState
 from chronos.config.settings import settings
@@ -29,12 +29,12 @@ _SUSPICIOUS_EVENT_TYPES = {
 async def audit_correlation_node(state: InvestigationState) -> InvestigationState:
     """Fetch audit logs and cross-reference with Graphiti user-action facts."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     window_hours = settings.investigation_window_hours
-    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    now_ms = int(datetime.now(tz=UTC).timestamp() * 1000)
     start_ms = int(
-        (datetime.utcnow() - timedelta(hours=window_hours)).timestamp() * 1000
+        (datetime.now(tz=UTC) - timedelta(hours=window_hours)).timestamp() * 1000
     )
 
     # Fetch audit logs from OpenMetadata
@@ -66,7 +66,7 @@ async def audit_correlation_node(state: InvestigationState) -> InvestigationStat
         "step": 6,
         "name": "audit_correlation",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Found {len(audit_events)} audit events "
             f"({len(suspicious_actions)} suspicious) "
@@ -78,5 +78,5 @@ async def audit_correlation_node(state: InvestigationState) -> InvestigationStat
         **state,
         "audit_events": audit_events,
         "suspicious_actions": suspicious_actions,
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

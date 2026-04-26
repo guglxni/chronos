@@ -6,10 +6,28 @@
   html {
     @apply bg-gray-900 text-gray-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    /* PlayStation typographic voice: display sizes use a lighter weight. */
+    font-feature-settings: 'kern' 1, 'ss01' 1;
   }
 
   * {
     box-sizing: border-box;
+  }
+
+  /* Light weight + tight tracking on display headlines — the "quiet authority" voice. */
+  h1, h2.display {
+    font-weight: 300;
+    letter-spacing: -0.015em;
+  }
+
+  /* Respect prefers-reduced-motion across all GSAP + CSS transitions. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   ::-webkit-scrollbar {
@@ -35,24 +53,65 @@
     @apply bg-gray-800 border border-gray-700 rounded-xl p-4;
   }
 
+  /* Primary CTA — PlayStation "power-on" hover: fill swaps to cyan + outer ring.
+     Scale stays subtle (1.04×) rather than the PS 1.2× so it fits in a dense dashboard. */
   .btn-primary {
-    @apply px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply relative px-4 py-2 bg-ps-blue text-white rounded-full text-sm font-medium
+           transition-all duration-200 ease-out
+           hover:bg-ps-cyan hover:shadow-ps-ring hover:scale-[1.04]
+           focus:outline-none focus:shadow-ps-focus
+           active:opacity-70
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    letter-spacing: 0.01em;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm font-medium transition-colors;
+    @apply px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-full text-sm font-medium
+           transition-all duration-200 ease-out
+           hover:scale-[1.04]
+           focus:outline-none focus:shadow-ps-focus
+           active:opacity-70
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-danger {
-    @apply px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors;
+    @apply px-4 py-2 bg-ps-orange hover:bg-ps-cyan text-white rounded-full text-sm font-medium
+           transition-all duration-200 ease-out
+           hover:shadow-ps-ring hover:scale-[1.04]
+           focus:outline-none focus:shadow-ps-focus
+           active:opacity-70;
   }
 
   .tab-active {
-    @apply border-b-2 border-sky-500 text-sky-400 font-medium;
+    @apply border-b-2 border-ps-blue text-ps-darklink font-medium;
   }
 
   .tab-inactive {
     @apply border-b-2 border-transparent text-gray-400 hover:text-gray-200 font-medium;
+  }
+
+  /* Skeleton shimmer — used while incident lists / cards load. */
+  .skeleton {
+    background: linear-gradient(90deg,
+      rgba(55, 65, 81, 0.4) 0%,
+      rgba(75, 85, 99, 0.6) 50%,
+      rgba(55, 65, 81, 0.4) 100%);
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded;
+  }
+
+  /* Floating UI tooltip surface — reused by the <Tooltip> component. */
+  .floating-tooltip {
+    @apply bg-gray-900 text-gray-100 text-xs px-2 py-1 rounded-md shadow-xl border border-gray-700
+           max-w-xs z-50 pointer-events-none;
+    backdrop-filter: blur(4px);
+  }
+
+  .floating-arrow {
+    @apply absolute bg-gray-900 border-gray-700 w-2 h-2;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    transform: rotate(45deg);
   }
 }
 

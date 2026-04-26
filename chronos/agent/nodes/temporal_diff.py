@@ -7,7 +7,7 @@ history to surface schema and metadata changes within the investigation window.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from chronos.agent.state import InvestigationState
 from chronos.config.settings import settings
@@ -19,7 +19,7 @@ GROUP_ID = "chronos-om-events"
 async def temporal_diff_node(state: InvestigationState) -> InvestigationState:
     """Fetch temporal changes from Graphiti and version history from OpenMetadata."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     # Graphiti: query for recent events in the investigation window
     temporal_changes = await graphiti_search_facts(
@@ -49,7 +49,7 @@ async def temporal_diff_node(state: InvestigationState) -> InvestigationState:
         "step": 2,
         "name": "temporal_diff",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Found {len(temporal_changes)} temporal changes, "
             f"{len(schema_changes)} schema changes, "
@@ -62,5 +62,5 @@ async def temporal_diff_node(state: InvestigationState) -> InvestigationState:
         "temporal_changes": temporal_changes,
         "schema_changes": schema_changes,
         "entity_version_diff": latest_version_diff,
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

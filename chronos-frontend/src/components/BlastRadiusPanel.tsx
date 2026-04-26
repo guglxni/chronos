@@ -2,6 +2,8 @@ import clsx from 'clsx';
 import { Layers, Users } from 'lucide-react';
 import type { AffectedAsset } from '../types';
 import EmptyState from './EmptyState';
+import Tooltip from './Tooltip';
+import Popover from './Popover';
 
 interface BlastRadiusPanelProps {
   assets: AffectedAsset[];
@@ -85,21 +87,19 @@ export default function BlastRadiusPanel({ assets }: BlastRadiusPanelProps) {
 
           <ul className="space-y-2">
             {tierAssets.map((asset, idx) => (
-              <li key={idx} className="card border border-gray-700 py-3">
+              <li key={idx} className="card border border-gray-700 py-3 transition-colors hover:border-gray-600">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p
-                      className="text-sm font-mono text-gray-200 truncate"
-                      title={asset.fqn}
-                    >
-                      {asset.display_name || asset.fqn}
-                    </p>
-                    <p
-                      className="text-xs text-gray-500 font-mono truncate mt-0.5"
-                      title={asset.fqn}
-                    >
-                      {asset.fqn}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <Tooltip content={asset.fqn} placement="top-start">
+                      <p className="text-sm font-mono text-gray-200 truncate">
+                        {asset.display_name || asset.fqn}
+                      </p>
+                    </Tooltip>
+                    <Tooltip content={asset.fqn} placement="top-start">
+                      <p className="text-xs text-gray-500 font-mono truncate mt-0.5">
+                        {asset.fqn}
+                      </p>
+                    </Tooltip>
                     {asset.domain && (
                       <p className="text-xs text-gray-600 mt-0.5">
                         Domain: <span className="text-gray-500">{asset.domain}</span>
@@ -107,13 +107,43 @@ export default function BlastRadiusPanel({ assets }: BlastRadiusPanelProps) {
                     )}
                   </div>
                   {asset.owners.length > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
-                      <Users className="w-3 h-3" />
-                      <span>{asset.owners.slice(0, 2).join(', ')}</span>
-                      {asset.owners.length > 2 && (
-                        <span className="text-gray-600">+{asset.owners.length - 2}</span>
-                      )}
-                    </div>
+                    asset.owners.length <= 2 ? (
+                      <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+                        <Users className="w-3 h-3" />
+                        <span>{asset.owners.join(', ')}</span>
+                      </div>
+                    ) : (
+                      // Popover reveals the full owner list when there are more than 2.
+                      <Popover
+                        placement="bottom-end"
+                        content={
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                              Owners ({asset.owners.length})
+                            </p>
+                            <ul className="space-y-1">
+                              {asset.owners.map((owner) => (
+                                <li
+                                  key={owner}
+                                  className="text-sm text-gray-200 font-mono"
+                                >
+                                  {owner}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0 hover:text-ps-darklink focus:outline-none focus:text-ps-darklink transition-colors rounded px-1"
+                        >
+                          <Users className="w-3 h-3" />
+                          <span>{asset.owners.slice(0, 2).join(', ')}</span>
+                          <span className="text-gray-600">+{asset.owners.length - 2}</span>
+                        </button>
+                      </Popover>
+                    )
                   )}
                 </div>
               </li>

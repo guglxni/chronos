@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
-from enum import Enum
-from typing import Any
-from pydantic import BaseModel, Field
 import uuid
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
-class RootCauseCategory(str, Enum):
+class RootCauseCategory(StrEnum):
     SCHEMA_CHANGE = "SCHEMA_CHANGE"
     CODE_CHANGE = "CODE_CHANGE"
     DATA_DRIFT = "DATA_DRIFT"
@@ -18,26 +19,30 @@ class RootCauseCategory(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class BusinessImpact(str, Enum):
+class BusinessImpact(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
-class IncidentStatus(str, Enum):
+class IncidentStatus(StrEnum):
     OPEN = "open"
     INVESTIGATING = "investigating"
     RESOLVED = "resolved"
     ACKNOWLEDGED = "acknowledged"
 
 
-class EvidenceSource(str, Enum):
+class EvidenceSource(StrEnum):
     OPENMETADATA = "openmetadata"
     GRAPHITI = "graphiti"
     GITNEXUS = "gitnexus"
     GRAPHIFY = "graphify"
     AUDIT_LOG = "audit_log"
+    # Used when the LLM returns an evidence source label we don't recognise.
+    # Keeps PROV-O provenance honest — previously unrecognised labels silently
+    # defaulted to OPENMETADATA, falsifying provenance chains.
+    UNKNOWN = "unknown"
 
 
 class EvidenceItem(BaseModel):
@@ -81,7 +86,7 @@ class RelatedIncident(BaseModel):
 
 class IncidentReport(BaseModel):
     incident_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     investigation_completed_at: datetime | None = None
     investigation_duration_ms: int | None = None
 
@@ -96,12 +101,21 @@ class IncidentReport(BaseModel):
     evidence_chain: list[EvidenceItem] = Field(default_factory=list)
 
     affected_downstream: list[AffectedAsset] = Field(default_factory=list)
+    upstream_assets: list[AffectedAsset] = Field(default_factory=list)
     business_impact: BusinessImpact = BusinessImpact.MEDIUM
+    business_impact_reasoning: str = ""
 
     recommended_actions: list[RemediationStep] = Field(default_factory=list)
     investigation_timeline: list[InvestigationTimelineEntry] = Field(default_factory=list)
     related_past_incidents: list[RelatedIncident] = Field(default_factory=list)
     graphify_context: str = ""
+
+    # Observability / provenance metadata populated by the runner.
+    # Spec'd in PRD §4.1 but previously absent from the model.
+    agent_version: str = ""
+    llm_model_used: str = ""
+    total_mcp_calls: int = 0
+    total_llm_tokens: int = 0
 
     status: IncidentStatus = IncidentStatus.OPEN
     acknowledged_by: str | None = None

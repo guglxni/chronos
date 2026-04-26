@@ -7,7 +7,7 @@ Classifies business impact based on OpenMetadata Tier tags.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from chronos.agent.state import InvestigationState
@@ -18,7 +18,7 @@ from chronos.mcp.tools import om_get_lineage
 async def downstream_impact_node(state: InvestigationState) -> InvestigationState:
     """Walk downstream lineage and classify business impact by tier."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     lineage = await om_get_lineage(
         fqn=entity_fqn,
@@ -77,7 +77,7 @@ async def downstream_impact_node(state: InvestigationState) -> InvestigationStat
         "step": 5,
         "name": "downstream_impact",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Found {len(downstream_assets)} downstream assets; "
             f"business_impact={business_impact_score}"
@@ -89,5 +89,5 @@ async def downstream_impact_node(state: InvestigationState) -> InvestigationStat
         "downstream_assets": downstream_assets,
         "business_impact_score": business_impact_score,
         "affected_owners": list(set(all_owners)),
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

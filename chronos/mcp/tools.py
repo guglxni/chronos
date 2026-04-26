@@ -16,6 +16,20 @@ from chronos.mcp.config import MCPServerType
 logger = logging.getLogger("chronos.mcp.tools")
 
 
+def _normalize_list_result(result: Any, *candidate_keys: str) -> list[dict[str, Any]]:
+    """Return a list of dictionaries from heterogeneous MCP response shapes."""
+    if isinstance(result, list):
+        return [item for item in result if isinstance(item, dict)]
+
+    if isinstance(result, dict):
+        for key in candidate_keys:
+            value = result.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+
+    return []
+
+
 # ─── OpenMetadata tools ────────────────────────────────────────────────────────
 
 async def om_get_entity(fqn: str) -> dict[str, Any]:
@@ -54,10 +68,7 @@ async def om_get_test_results(fqn: str, limit: int = 10) -> list[dict[str, Any]]
         "get_test_cases",
         {"entityFQN": fqn, "limit": limit},
     )
-    # Normalize to list
-    if isinstance(result, list):
-        return result
-    return result.get("data", result.get("testCases", []))
+    return _normalize_list_result(result, "data", "testCases")
 
 
 async def om_get_version_history(fqn: str) -> list[dict[str, Any]]:
@@ -67,9 +78,7 @@ async def om_get_version_history(fqn: str) -> list[dict[str, Any]]:
         "get_entity_versions",
         {"fullyQualifiedName": fqn},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("versions", result.get("data", []))
+    return _normalize_list_result(result, "versions", "data")
 
 
 async def om_get_audit_logs(
@@ -90,9 +99,7 @@ async def om_get_audit_logs(
         "get_audit_logs",
         {"entityFQN": fqn, "startTs": start_ts, "endTs": end_ts},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("data", result.get("logs", []))
+    return _normalize_list_result(result, "data", "logs")
 
 
 async def om_search_entities(
@@ -108,9 +115,7 @@ async def om_search_entities(
         "search_entities",
         params,
     )
-    if isinstance(result, list):
-        return result
-    return result.get("hits", result.get("data", []))
+    return _normalize_list_result(result, "hits", "data")
 
 
 # ─── Graphiti tools ────────────────────────────────────────────────────────────
@@ -150,9 +155,7 @@ async def graphiti_search_facts(
         "search_facts",
         {"query": query, "group_id": group_id, "max_facts": limit},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("facts", result.get("edges", []))
+    return _normalize_list_result(result, "facts", "edges")
 
 
 async def graphiti_search_nodes(
@@ -166,9 +169,7 @@ async def graphiti_search_nodes(
         "search_nodes",
         {"query": query, "group_id": group_id, "max_nodes": limit},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("nodes", [])
+    return _normalize_list_result(result, "nodes")
 
 
 async def graphiti_get_episodes(
@@ -181,9 +182,7 @@ async def graphiti_get_episodes(
         "get_episodes",
         {"group_id": group_id, "last_n": last_n},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("episodes", [])
+    return _normalize_list_result(result, "episodes")
 
 
 # ─── GitNexus tools ────────────────────────────────────────────────────────────
@@ -197,9 +196,7 @@ async def gitnexus_search_files(query: str) -> list[dict[str, Any]]:
         "search_files",
         {"query": query},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("files", result.get("results", []))
+    return _normalize_list_result(result, "files", "results")
 
 
 async def gitnexus_get_file_references(entity_name: str) -> list[dict[str, Any]]:
@@ -211,6 +208,18 @@ async def gitnexus_get_file_references(entity_name: str) -> list[dict[str, Any]]
         "get_file_references",
         {"entity_name": entity_name},
     )
-    if isinstance(result, list):
-        return result
-    return result.get("references", result.get("files", []))
+    return _normalize_list_result(result, "references", "files")
+
+
+async def gitnexus_get_commits(entity_name: str, limit: int = 10) -> list[dict[str, Any]]:
+    """
+    Return recent git commits that touch code referencing entity_name.
+
+    Each commit dict contains at minimum: sha, message, author, date, files_changed.
+    """
+    result = await mcp_client.call_tool(
+        MCPServerType.GITNEXUS,
+        "get_commits",
+        {"entity_name": entity_name, "limit": limit},
+    )
+    return _normalize_list_result(result, "commits", "results")

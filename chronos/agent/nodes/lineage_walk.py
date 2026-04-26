@@ -7,7 +7,7 @@ tables/pipelines also have failures, which would indicate UPSTREAM_FAILURE root 
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from chronos.agent.state import InvestigationState
@@ -18,7 +18,7 @@ from chronos.mcp.tools import om_get_lineage, om_get_test_results
 async def lineage_walk_node(state: InvestigationState) -> InvestigationState:
     """Walk upstream lineage and check each node for test failures."""
     entity_fqn = state.get("entity_fqn", "")
-    start_time = datetime.utcnow()
+    start_time = datetime.now(tz=UTC)
 
     lineage = await om_get_lineage(
         fqn=entity_fqn,
@@ -56,7 +56,7 @@ async def lineage_walk_node(state: InvestigationState) -> InvestigationState:
         "step": 3,
         "name": "lineage_walk",
         "started_at": start_time.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(tz=UTC).isoformat(),
         "summary": (
             f"Walked {len(upstream_nodes)} upstream nodes; "
             f"found {len(upstream_failures)} upstream failures"
@@ -68,5 +68,5 @@ async def lineage_walk_node(state: InvestigationState) -> InvestigationState:
         "upstream_lineage": upstream_nodes,
         "upstream_failures": upstream_failures,
         "upstream_changes": upstream_changes,
-        "step_results": state.get("step_results", []) + [step_result],
+        "step_results": [*state.get("step_results", []), step_result],
     }

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-GRAPH_REPORT_PATH = Path(__file__).parent.parent.parent / "GRAPH_REPORT.md"
+GRAPH_REPORT_PATH = Path(__file__).parent.parent.parent / "graphify-out" / "GRAPH_REPORT.md"
 
 _MAX_CHARS = 2000
 _CONTEXT_LINES_BEFORE = 2

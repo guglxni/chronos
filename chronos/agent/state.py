@@ -1,23 +1,37 @@
 """
 LangGraph TypedDict state for a CHRONOS investigation run.
 
-Every node receives and returns a (partial) InvestigationState. Keys are optional
-(total=False) so nodes only need to return the fields they populate.
+``InvestigationInputs`` contains the required trigger fields that every node
+can rely on being present.  ``InvestigationState`` extends it with
+``total=False`` optional keys that nodes progressively accumulate.
+
+Splitting the two removes the need for defensive ``.get()`` on trigger fields
+and gives mypy enough type information to catch missing-key bugs in nodes.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Required, TypedDict
 
 
-class InvestigationState(TypedDict, total=False):
-    # ── Trigger ──────────────────────────────────────────────────────────────
+class InvestigationInputs(TypedDict):
+    """Required fields — always present from the start of the pipeline."""
+
     incident_id: str
     triggered_at: datetime
     entity_fqn: str
     test_name: str
     failure_message: str
+    step_results: list[dict[str, Any]]
+    investigation_start: datetime
+    # Bump this integer on every breaking state-shape change so rolling deploys
+    # and future migration paths can detect version mismatches.
+    state_schema_version: int
+
+
+class InvestigationState(InvestigationInputs, total=False):
+    """Full investigation state — required inputs plus optional accumulated outputs."""
 
     # ── Step 0: Prior investigations ──────────────────────────────────────────
     prior_investigations: list[dict[str, Any]]
@@ -62,6 +76,8 @@ class InvestigationState(TypedDict, total=False):
     trace_persisted: bool
 
     # ── Meta ──────────────────────────────────────────────────────────────────
-    step_results: list[dict[str, Any]]
-    investigation_start: datetime
     error: str | None
+
+
+# Re-export Required so importing modules don't need to touch typing directly
+__all__ = ["InvestigationInputs", "InvestigationState", "Required"]

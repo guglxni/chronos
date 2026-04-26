@@ -9,10 +9,12 @@ report was generated — all expressed in W3C-standard provenance vocabulary.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from prov.model import ProvDocument
 from prov.constants import PROV_TYPE
+from prov.model import ProvDocument
+
+from chronos.config.settings import settings
 
 logger = logging.getLogger("chronos.compliance.prov")
 
@@ -32,7 +34,7 @@ def _parse_iso_dt(value: str | None) -> datetime | None:
         dt = datetime.fromisoformat(cleaned)
         # Ensure the datetime is timezone-aware for PROV serialization
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt
     except (ValueError, TypeError) as exc:
         logger.debug(f"Could not parse datetime '{value}': {exc}")
@@ -70,15 +72,15 @@ def generate_provenance(incident_report: dict) -> ProvDocument:
     entity_fqn = incident_report.get("affected_entity_fqn", "unknown")
     detected_at = _parse_iso_dt(
         incident_report.get("detected_at")
-    ) or datetime.now(tz=timezone.utc)
+    ) or datetime.now(tz=UTC)
     completed_at = _parse_iso_dt(incident_report.get("investigation_completed_at"))
 
     # ── Agent: CHRONOS software ───────────────────────────────────────────────
     agent = d.agent(
-        f"chronos:agent_chronos",
+        "chronos:agent_chronos",
         {
             PROV_TYPE: "prov:SoftwareAgent",
-            "chronos:version": "2.0.0",
+            "chronos:version": settings.version,
             "chronos:service": "chronos-rca",
         },
     )
@@ -86,8 +88,8 @@ def generate_provenance(incident_report: dict) -> ProvDocument:
     # ── Activity: the investigation run ───────────────────────────────────────
     activity = d.activity(
         f"chronos:investigation_{_safe_id(incident_id)}",
-        started_at_time=detected_at,
-        ended_at_time=completed_at,
+        startTime=detected_at,
+        endTime=completed_at,
         other_attributes={
             PROV_TYPE: "chronos:RCAInvestigation",
             "chronos:incident_id": incident_id,
@@ -157,3 +159,45 @@ def generate_provenance(incident_report: dict) -> ProvDocument:
         d.wasDerivedFrom(downstream_entity, data_entity)
 
     return d
+
+
+def _stub_provenance(incident_report: dict) -> ProvDocument:
+    """Return a minimal valid PROV-O document when full generation fails."""
+    d = ProvDocument()
+    d.set_default_namespace(CHRONOS_NS)
+    d.add_namespace("prov", PROV_NS)
+    d.add_namespace("chronos", CHRONOS_NS)
+
+    incident_id = incident_report.get("incident_id", "unknown")
+    agent = d.agent("chronos:agent_chronos", {PROV_TYPE: "prov:SoftwareAgent"})
+    activity = d.activity(
+        f"chronos:investigation_{_safe_id(incident_id)}",
+        other_attributes={PROV_TYPE: "chronos:RCAInvestigation"},
+    )
+    d.wasAssociatedWith(activity, agent)
+    stub_entity = d.entity(
+        f"chronos:stub_{_safe_id(incident_id)}",
+        {
+            PROV_TYPE: "chronos:IncidentReport",
+            "chronos:incident_id": incident_id,
+            "chronos:note": "Provenance generation failed; this is a minimal stub.",
+        },
+    )
+    d.wasGeneratedBy(stub_entity, activity)
+    # prov:wasInvalidatedBy signals downstream consumers that this document is incomplete.
+    d.wasInvalidatedBy(stub_entity, activity)
+    return d
+
+
+def safe_generate_provenance(incident_report: dict) -> ProvDocument:
+    """Generate PROV-O document, falling back to a stub on any failure."""
+    try:
+        return generate_provenance(incident_report)
+    except Exception as exc:
+        logger.error(
+            "generate_provenance failed for incident %s (%s): %s — returning stub",
+            incident_report.get("incident_id"),
+            type(exc).__name__,
+            exc,
+        )
+        return _stub_provenance(incident_report)
