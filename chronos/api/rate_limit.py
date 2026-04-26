@@ -17,6 +17,7 @@ buckets by varying the header.  This module fixes that.
 Configure via ``TRUST_PROXY_HEADERS`` and ``TRUSTED_PROXY_IPS`` env vars; when
 unset (the hackathon default), the TCP peer is used directly.
 """
+
 from __future__ import annotations
 
 import os
@@ -31,7 +32,9 @@ def _parse_trusted_proxies() -> frozenset[str]:
 
 
 _TRUST_PROXY_HEADERS = os.environ.get("TRUST_PROXY_HEADERS", "").lower() in {
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 }
 _TRUSTED_PROXY_IPS = _parse_trusted_proxies()
 

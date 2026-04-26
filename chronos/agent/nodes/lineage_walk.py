@@ -32,24 +32,17 @@ async def lineage_walk_node(state: InvestigationState) -> InvestigationState:
 
     # Check up to 10 upstream entities for their own test failures
     for node in upstream_nodes[:10]:
-        node_fqn = (
-            node.get("fullyQualifiedName")
-            or node.get("fqn")
-            or node.get("name", "")
-        )
+        node_fqn = node.get("fullyQualifiedName") or node.get("fqn") or node.get("name", "")
         if not node_fqn or node_fqn == entity_fqn:
             continue
 
         node_results = await om_get_test_results(node_fqn, limit=5)
         for result in node_results:
-            tc_status = (
-                result.get("testCaseResult", {}).get("testCaseStatus")
-                or result.get("testCaseStatus", "")
+            tc_status = result.get("testCaseResult", {}).get("testCaseStatus") or result.get(
+                "testCaseStatus", ""
             )
             if tc_status == "Failed":
-                upstream_failures.append(
-                    {"entity_fqn": node_fqn, "test": result}
-                )
+                upstream_failures.append({"entity_fqn": node_fqn, "test": result})
                 break  # One failure per node is enough to flag it
 
     step_result = {

@@ -9,6 +9,7 @@ Environment-aware validation runs at startup via a model_validator so that
 misconfigured deployments fail fast with a clear error listing every missing
 required secret — not buried inside a request handler.
 """
+
 from __future__ import annotations
 
 from pydantic import SecretStr, model_validator
@@ -135,12 +136,8 @@ class Settings(BaseSettings):
             # Require at least one LLM provider key — a missing key causes every
             # investigation to silently produce a degraded result (LiteLLM returns
             # 401, RCA synthesis never runs), not a startup error.
-            if not any(
-                [self.anthropic_api_key, self.openai_api_key, self.groq_api_key]
-            ):
-                missing.append(
-                    "at least one of ANTHROPIC_API_KEY / OPENAI_API_KEY / GROQ_API_KEY"
-                )
+            if not any([self.anthropic_api_key, self.openai_api_key, self.groq_api_key]):
+                missing.append("at least one of ANTHROPIC_API_KEY / OPENAI_API_KEY / GROQ_API_KEY")
 
             # Reject plain-HTTP URLs for external services in production — tokens
             # would travel in cleartext, violating data-handling policies.

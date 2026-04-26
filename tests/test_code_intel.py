@@ -13,6 +13,7 @@ filesystem state is in pytest's ``tmp_path`` fixture (except the graphify
 adapter test which intentionally exercises the real
 ``graphify-out/graph.json`` artifact that ships with this repo).
 """
+
 from __future__ import annotations
 
 import json
@@ -33,6 +34,7 @@ from chronos.code_intel import (
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
+
 def _run(args: list[str], cwd: Path) -> None:
     """Run a subprocess command in ``cwd`` and assert success.
 
@@ -42,13 +44,20 @@ def _run(args: list[str], cwd: Path) -> None:
     """
     env = {
         **os.environ,
-        "GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@t",
-        "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@t",
+        "GIT_AUTHOR_NAME": "T",
+        "GIT_AUTHOR_EMAIL": "t@t",
+        "GIT_COMMITTER_NAME": "T",
+        "GIT_COMMITTER_EMAIL": "t@t",
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_SYSTEM": "/dev/null",
     }
-    subprocess.run(args, cwd=cwd, env=env, check=True,  # noqa: S603
-                   capture_output=True)
+    subprocess.run(
+        args,
+        cwd=cwd,
+        env=env,
+        check=True,  # noqa: S603
+        capture_output=True,
+    )
 
 
 def _make_repo(root: Path) -> Path:
@@ -75,6 +84,7 @@ def _make_repo(root: Path) -> Path:
 
 
 # ─── local_git ────────────────────────────────────────────────────────────────
+
 
 def test_local_git_finds_only_orders_commits(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path)
@@ -115,6 +125,7 @@ async def test_local_git_async_wrapper_runs(tmp_path: Path) -> None:
 
 # ─── code_search ──────────────────────────────────────────────────────────────
 
+
 def test_code_search_finds_files_referencing_orders(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path)
     hits = code_search.search_entity_references("orders", repo, limit=10)
@@ -146,6 +157,7 @@ async def test_code_search_async_wrapper_runs(tmp_path: Path) -> None:
 
 
 # ─── sql_parser ───────────────────────────────────────────────────────────────
+
 
 def test_sql_parser_extracts_basic_tables() -> None:
     sql = "SELECT * FROM analytics.orders JOIN raw.users u ON u.id = orders.user_id"
@@ -184,14 +196,13 @@ def test_file_references_entity_text_fallback() -> None:
 # ─── graphify_adapter ─────────────────────────────────────────────────────────
 # These exercise the real graphify-out/graph.json shipped with this repo.
 
-GRAPH_PATH = (
-    Path(__file__).resolve().parent.parent / "graphify-out" / "graph.json"
-)
+GRAPH_PATH = Path(__file__).resolve().parent.parent / "graphify-out" / "graph.json"
 _GRAPH_AVAILABLE = GRAPH_PATH.exists()
 
 
 @pytest.mark.skipif(
-    not _GRAPH_AVAILABLE, reason="graph.json missing — skipping live adapter tests",
+    not _GRAPH_AVAILABLE,
+    reason="graph.json missing — skipping live adapter tests",
 )
 def test_graphify_loads_and_reports_stats() -> None:
     stats = graphify_adapter.graph_stats(GRAPH_PATH)
@@ -209,9 +220,7 @@ def test_graphify_get_node_for_known_label() -> None:
 
 @pytest.mark.skipif(not _GRAPH_AVAILABLE, reason="graph.json missing")
 def test_graphify_get_neighbors_returns_edges_with_metadata() -> None:
-    neighbours = graphify_adapter.get_neighbors(
-        "IncidentReport", limit=5, graph_path=GRAPH_PATH
-    )
+    neighbours = graphify_adapter.get_neighbors("IncidentReport", limit=5, graph_path=GRAPH_PATH)
     assert neighbours
     sample = neighbours[0]
     assert "node" in sample and "relation" in sample and "confidence" in sample
@@ -227,24 +236,27 @@ def test_graphify_god_nodes_includes_known_hub() -> None:
 
 @pytest.mark.skipif(not _GRAPH_AVAILABLE, reason="graph.json missing")
 def test_graphify_returns_empty_for_unknown_query() -> None:
-    assert graphify_adapter.get_node(
-        "definitely_not_a_real_node_xyz", graph_path=GRAPH_PATH
-    ) == {}
-    assert graphify_adapter.get_neighbors(
-        "definitely_not_a_real_node_xyz", graph_path=GRAPH_PATH
-    ) == []
+    assert graphify_adapter.get_node("definitely_not_a_real_node_xyz", graph_path=GRAPH_PATH) == {}
+    assert (
+        graphify_adapter.get_neighbors("definitely_not_a_real_node_xyz", graph_path=GRAPH_PATH)
+        == []
+    )
 
 
 def test_graphify_handles_missing_artifact(tmp_path: Path) -> None:
     missing = tmp_path / "nope.json"
     assert graphify_adapter.is_available(missing) is False
     assert graphify_adapter.graph_stats(missing) == {
-        "available": False, "nodes": 0, "edges": 0, "communities": 0,
+        "available": False,
+        "nodes": 0,
+        "edges": 0,
+        "communities": 0,
     }
     assert graphify_adapter.get_node("anything", graph_path=missing) == {}
 
 
 # ─── dbt_manifest ─────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def synthetic_manifest(tmp_path: Path) -> Path:
@@ -316,8 +328,7 @@ def test_dbt_manifest_returns_parents_and_children(synthetic_manifest: Path) -> 
 
 
 def test_dbt_manifest_walk_downstream_two_levels(synthetic_manifest: Path) -> None:
-    walk = dbt_manifest.walk_downstream("orders", depth=3,
-                                        manifest_path=synthetic_manifest)
+    walk = dbt_manifest.walk_downstream("orders", depth=3, manifest_path=synthetic_manifest)
     names = [n["name"] for n in walk]
     assert "dim_orders" in names
     assert "fact_revenue" in names

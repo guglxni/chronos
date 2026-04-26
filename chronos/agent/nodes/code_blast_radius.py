@@ -49,8 +49,8 @@ def _normalise_table_candidates(entity_fqn: str) -> list[str]:
         return []
     candidates: list[str] = []
     if len(parts) >= 2:
-        candidates.append(".".join(parts[-2:]))   # schema.table
-    candidates.append(parts[-1])                  # table
+        candidates.append(".".join(parts[-2:]))  # schema.table
+    candidates.append(parts[-1])  # table
     seen: set[str] = set()
     deduped: list[str] = []
     for cand in candidates:
@@ -134,12 +134,9 @@ async def code_blast_radius_node(state: InvestigationState) -> InvestigationStat
             )
         ):
             if isinstance(results[idx], Exception):
-                logger.warning("code_blast_radius backend %s failed: %s",
-                               label, results[idx])
+                logger.warning("code_blast_radius backend %s failed: %s", label, results[idx])
 
-    code_dependencies = [
-        f.get("path", "") for f in related_code_files if f.get("path")
-    ]
+    code_dependencies = [f.get("path", "") for f in related_code_files if f.get("path")]
 
     summary = (
         f"Found {len(related_code_files)} related code files, "

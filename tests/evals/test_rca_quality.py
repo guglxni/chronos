@@ -14,9 +14,7 @@ from pathlib import Path
 
 import pytest
 
-FIXTURE_PATH = (
-    Path(__file__).parent / "fixtures/events/schema_change_webhook.json"
-)
+FIXTURE_PATH = Path(__file__).parent / "fixtures/events/schema_change_webhook.json"
 
 
 @pytest.mark.skipif(
@@ -71,8 +69,7 @@ def test_rca_accuracy_schema_change():
         retrieval_context=[
             "Schema version history shows column order_id changed from NOT NULL "
             "to NULL at 2026-04-21T14:00:00Z",
-            "Audit log: user data_engineer modified table orders schema at "
-            "2026-04-21T13:58:00",
+            "Audit log: user data_engineer modified table orders schema at 2026-04-21T13:58:00",
         ],
     )
 
@@ -106,9 +103,7 @@ def test_confidence_threshold():
     fixture = json.loads(FIXTURE_PATH.read_text())
 
     # Structural checks on the fixture
-    assert fixture["eventType"] == "TEST_CASE_FAILED", (
-        "Fixture must be a TEST_CASE_FAILED event"
-    )
+    assert fixture["eventType"] == "TEST_CASE_FAILED", "Fixture must be a TEST_CASE_FAILED event"
     assert "orders" in fixture["entityFullyQualifiedName"], (
         "Fixture must reference the orders entity"
     )

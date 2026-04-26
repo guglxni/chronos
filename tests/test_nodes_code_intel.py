@@ -3,6 +3,7 @@ Integration tests for investigation nodes that consume the new code_intel
 backends (``code_blast_radius``, ``scope_failure``, ``downstream_impact``).
 All MCP tool calls are patched — no live infrastructure required.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -27,46 +28,74 @@ def _base_state(**overrides) -> dict:
 
 # ─── code_blast_radius_node ──────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_code_blast_radius_merges_all_backends() -> None:
     """All four backends are called and their results land in state."""
     from chronos.agent.nodes.code_blast_radius import code_blast_radius_node
 
-    files_mock = AsyncMock(side_effect=[
-        [{"path": "etl.py", "line": 1, "snippet": "orders", "language": "python"}],
-        # The second candidate produces a duplicate path that should be deduped.
-        [{"path": "etl.py", "line": 1, "snippet": "orders", "language": "python"},
-         {"path": "model.sql", "line": 1, "snippet": "orders", "language": "sql"}],
-    ])
-    commits_mock = AsyncMock(return_value=[
-        {"sha": "abc", "author": "alice", "date": "2026-04-26T00:00:00Z",
-         "message": "fix orders", "files_changed": ["etl.py"]},
-    ])
-    dbt_up_mock = AsyncMock(return_value=[
-        {"node_id": "source.shop.raw.orders", "name": "orders",
-         "resource_type": "source", "depth": 1},
-    ])
-    dbt_down_mock = AsyncMock(return_value=[
-        {"node_id": "model.shop.dim_orders", "name": "dim_orders",
-         "resource_type": "model", "depth": 1},
-    ])
-    graph_neighbors_mock = AsyncMock(return_value=[
-        {"node": {"id": "n1", "label": "load_orders()"},
-         "relation": "calls", "confidence": "EXTRACTED",
-         "confidence_score": 1.0, "source_file": "", "source_location": ""},
-    ])
+    files_mock = AsyncMock(
+        side_effect=[
+            [{"path": "etl.py", "line": 1, "snippet": "orders", "language": "python"}],
+            # The second candidate produces a duplicate path that should be deduped.
+            [
+                {"path": "etl.py", "line": 1, "snippet": "orders", "language": "python"},
+                {"path": "model.sql", "line": 1, "snippet": "orders", "language": "sql"},
+            ],
+        ]
+    )
+    commits_mock = AsyncMock(
+        return_value=[
+            {
+                "sha": "abc",
+                "author": "alice",
+                "date": "2026-04-26T00:00:00Z",
+                "message": "fix orders",
+                "files_changed": ["etl.py"],
+            },
+        ]
+    )
+    dbt_up_mock = AsyncMock(
+        return_value=[
+            {
+                "node_id": "source.shop.raw.orders",
+                "name": "orders",
+                "resource_type": "source",
+                "depth": 1,
+            },
+        ]
+    )
+    dbt_down_mock = AsyncMock(
+        return_value=[
+            {
+                "node_id": "model.shop.dim_orders",
+                "name": "dim_orders",
+                "resource_type": "model",
+                "depth": 1,
+            },
+        ]
+    )
+    graph_neighbors_mock = AsyncMock(
+        return_value=[
+            {
+                "node": {"id": "n1", "label": "load_orders()"},
+                "relation": "calls",
+                "confidence": "EXTRACTED",
+                "confidence_score": 1.0,
+                "source_file": "",
+                "source_location": "",
+            },
+        ]
+    )
 
     with (
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_search_files",
-              new=files_mock),
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_get_commits",
-              new=commits_mock),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_upstream",
-              new=dbt_up_mock),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_downstream",
-              new=dbt_down_mock),
-        patch("chronos.agent.nodes.code_blast_radius.graphify_get_neighbors",
-              new=graph_neighbors_mock),
+        patch("chronos.agent.nodes.code_blast_radius.gitnexus_search_files", new=files_mock),
+        patch("chronos.agent.nodes.code_blast_radius.gitnexus_get_commits", new=commits_mock),
+        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_upstream", new=dbt_up_mock),
+        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_downstream", new=dbt_down_mock),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.graphify_get_neighbors", new=graph_neighbors_mock
+        ),
     ):
         result = await code_blast_radius_node(_base_state())
 
@@ -85,16 +114,26 @@ async def test_code_blast_radius_tolerates_backend_failures() -> None:
     from chronos.agent.nodes.code_blast_radius import code_blast_radius_node
 
     with (
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_search_files",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_get_commits",
-              new=AsyncMock(side_effect=RuntimeError("git not available"))),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_upstream",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_downstream",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.graphify_get_neighbors",
-              new=AsyncMock(return_value=[])),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.gitnexus_search_files",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.gitnexus_get_commits",
+            new=AsyncMock(side_effect=RuntimeError("git not available")),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.dbt_walk_upstream",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.dbt_walk_downstream",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.graphify_get_neighbors",
+            new=AsyncMock(return_value=[]),
+        ),
     ):
         result = await code_blast_radius_node(_base_state())
 
@@ -110,16 +149,23 @@ async def test_code_blast_radius_skips_when_entity_blank() -> None:
 
     files_mock = AsyncMock(return_value=[])
     with (
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_search_files",
-              new=files_mock),
-        patch("chronos.agent.nodes.code_blast_radius.gitnexus_get_commits",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_upstream",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.dbt_walk_downstream",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.code_blast_radius.graphify_get_neighbors",
-              new=AsyncMock(return_value=[])),
+        patch("chronos.agent.nodes.code_blast_radius.gitnexus_search_files", new=files_mock),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.gitnexus_get_commits",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.dbt_walk_upstream",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.dbt_walk_downstream",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "chronos.agent.nodes.code_blast_radius.graphify_get_neighbors",
+            new=AsyncMock(return_value=[]),
+        ),
     ):
         result = await code_blast_radius_node(_base_state(entity_fqn=""))
 
@@ -130,6 +176,7 @@ async def test_code_blast_radius_skips_when_entity_blank() -> None:
 
 # ─── scope_failure_node ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_scope_failure_records_architectural_community() -> None:
     """When graphify returns a community, it lands in state."""
@@ -139,17 +186,29 @@ async def test_scope_failure_records_architectural_community() -> None:
         "community_id": 5,
         "size": 12,
         "node_id": "orders_node",
-        "members": [{"id": "n1", "label": "load_orders()", "file_type": "code",
-                     "source_file": "etl.py", "degree": 4}],
+        "members": [
+            {
+                "id": "n1",
+                "label": "load_orders()",
+                "file_type": "code",
+                "source_file": "etl.py",
+                "degree": 4,
+            }
+        ],
     }
 
     with (
-        patch("chronos.agent.nodes.scope_failure.om_get_entity",
-              new=AsyncMock(return_value={"id": "e1"})),
-        patch("chronos.agent.nodes.scope_failure.om_get_test_results",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.scope_failure.graphify_get_community",
-              new=AsyncMock(return_value=community)),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_entity",
+            new=AsyncMock(return_value={"id": "e1"}),
+        ),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_test_results", new=AsyncMock(return_value=[])
+        ),
+        patch(
+            "chronos.agent.nodes.scope_failure.graphify_get_community",
+            new=AsyncMock(return_value=community),
+        ),
     ):
         result = await scope_failure_node(_base_state())
 
@@ -163,12 +222,17 @@ async def test_scope_failure_handles_graphify_miss() -> None:
     from chronos.agent.nodes.scope_failure import scope_failure_node
 
     with (
-        patch("chronos.agent.nodes.scope_failure.om_get_entity",
-              new=AsyncMock(return_value={"id": "e1"})),
-        patch("chronos.agent.nodes.scope_failure.om_get_test_results",
-              new=AsyncMock(return_value=[])),
-        patch("chronos.agent.nodes.scope_failure.graphify_get_community",
-              new=AsyncMock(return_value={})),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_entity",
+            new=AsyncMock(return_value={"id": "e1"}),
+        ),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_test_results", new=AsyncMock(return_value=[])
+        ),
+        patch(
+            "chronos.agent.nodes.scope_failure.graphify_get_community",
+            new=AsyncMock(return_value={}),
+        ),
     ):
         result = await scope_failure_node(_base_state())
 
@@ -176,6 +240,7 @@ async def test_scope_failure_handles_graphify_miss() -> None:
 
 
 # ─── downstream_impact_node ──────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_downstream_impact_records_blast_paths_for_tier1() -> None:
@@ -192,18 +257,24 @@ async def test_downstream_impact_records_blast_paths_for_tier1() -> None:
             },
         ],
     }
-    path_mock = AsyncMock(return_value=[
-        {"id": "n1", "label": "scope_failure_node", "source_file": "",
-         "edge_to_next": {"relation": "calls", "confidence": "EXTRACTED"}},
-        {"id": "n2", "label": "fact_revenue_loader", "source_file": "",
-         "edge_to_next": {}},
-    ])
+    path_mock = AsyncMock(
+        return_value=[
+            {
+                "id": "n1",
+                "label": "scope_failure_node",
+                "source_file": "",
+                "edge_to_next": {"relation": "calls", "confidence": "EXTRACTED"},
+            },
+            {"id": "n2", "label": "fact_revenue_loader", "source_file": "", "edge_to_next": {}},
+        ]
+    )
 
     with (
-        patch("chronos.agent.nodes.downstream_impact.om_get_lineage",
-              new=AsyncMock(return_value=lineage)),
-        patch("chronos.agent.nodes.downstream_impact.graphify_shortest_path",
-              new=path_mock),
+        patch(
+            "chronos.agent.nodes.downstream_impact.om_get_lineage",
+            new=AsyncMock(return_value=lineage),
+        ),
+        patch("chronos.agent.nodes.downstream_impact.graphify_shortest_path", new=path_mock),
     ):
         result = await downstream_impact_node(_base_state())
 
@@ -232,10 +303,11 @@ async def test_downstream_impact_no_blast_paths_for_low_tier() -> None:
     path_mock = AsyncMock(return_value=[])
 
     with (
-        patch("chronos.agent.nodes.downstream_impact.om_get_lineage",
-              new=AsyncMock(return_value=lineage)),
-        patch("chronos.agent.nodes.downstream_impact.graphify_shortest_path",
-              new=path_mock),
+        patch(
+            "chronos.agent.nodes.downstream_impact.om_get_lineage",
+            new=AsyncMock(return_value=lineage),
+        ),
+        patch("chronos.agent.nodes.downstream_impact.graphify_shortest_path", new=path_mock),
     ):
         result = await downstream_impact_node(_base_state())
 

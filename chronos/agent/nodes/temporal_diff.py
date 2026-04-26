@@ -23,10 +23,7 @@ async def temporal_diff_node(state: InvestigationState) -> InvestigationState:
 
     # Graphiti: query for recent events in the investigation window
     temporal_changes = await graphiti_search_facts(
-        query=(
-            f"changes to {entity_fqn} in last "
-            f"{settings.investigation_window_hours} hours"
-        ),
+        query=(f"changes to {entity_fqn} in last {settings.investigation_window_hours} hours"),
         group_id=GROUP_ID,
         limit=20,
     )

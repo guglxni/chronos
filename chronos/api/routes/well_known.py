@@ -23,6 +23,7 @@ router = APIRouter(tags=["discovery"])
 
 # ── Agent card data ───────────────────────────────────────────────────────────
 
+
 def _build_card() -> dict:
     return {
         "schemaVersion": "1.0",
@@ -37,7 +38,9 @@ def _build_card() -> dict:
         "homepage": "https://github.com/chronos-data/chronos",
         "provider": {
             "name": "CHRONOS",
-            "url": settings.api_base_url if hasattr(settings, "api_base_url") else "https://chronos-api-0e8635fe890d.herokuapp.com",
+            "url": settings.api_base_url
+            if hasattr(settings, "api_base_url")
+            else "https://chronos-api-0e8635fe890d.herokuapp.com",
         },
         "authentication": {
             "type": "none",
@@ -150,6 +153,7 @@ def _build_card() -> dict:
 
 # ── HTML renderer ─────────────────────────────────────────────────────────────
 
+
 def _render_html(card: dict) -> str:
     skills_html = ""
     for skill in card["skills"]:
@@ -162,17 +166,17 @@ def _render_html(card: dict) -> str:
             params_html += f"""
             <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
               <span style="font-family:monospace;font-size:12px;color:#0057FF;white-space:nowrap;padding-top:1px;">{prop}</span>
-              <span style="font-family:monospace;font-size:11px;color:#404040;flex-shrink:0;padding-top:2px;">{meta.get('type','string')}</span>
+              <span style="font-family:monospace;font-size:11px;color:#404040;flex-shrink:0;padding-top:2px;">{meta.get("type", "string")}</span>
               {"<span style='font-size:10px;color:#ef4444;flex-shrink:0;padding-top:3px;'>required</span>" if is_req else ""}
-              <span style="font-size:12px;color:#555;line-height:1.4;">{meta.get('description','')}</span>
+              <span style="font-size:12px;color:#555;line-height:1.4;">{meta.get("description", "")}</span>
             </div>"""
 
         skills_html += f"""
         <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:4px;padding:32px;display:flex;flex-direction:column;">
           <span style="font-size:28px;color:#0057FF;margin-bottom:20px;display:block;">{icon}</span>
-          <h3 style="font-family:Georgia,serif;font-size:20px;color:#ffffff;font-weight:normal;margin:0 0 6px;">{skill['name']}</h3>
-          <p style="font-size:10px;color:#404040;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 16px;font-family:system-ui,sans-serif;">{skill['id']}</p>
-          <p style="font-size:13px;color:#707072;line-height:1.6;margin:0 0 20px;font-family:system-ui,sans-serif;">{skill['description']}</p>
+          <h3 style="font-family:Georgia,serif;font-size:20px;color:#ffffff;font-weight:normal;margin:0 0 6px;">{skill["name"]}</h3>
+          <p style="font-size:10px;color:#404040;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 16px;font-family:system-ui,sans-serif;">{skill["id"]}</p>
+          <p style="font-size:13px;color:#707072;line-height:1.6;margin:0 0 20px;font-family:system-ui,sans-serif;">{skill["description"]}</p>
           <div style="margin-top:auto;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
             <p style="font-size:10px;color:#404040;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 8px;font-family:system-ui,sans-serif;">Input Parameters</p>
             {params_html}
@@ -188,7 +192,7 @@ def _render_html(card: dict) -> str:
         <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
           <span style="font-family:monospace;font-size:11px;padding:3px 8px;border-radius:3px;background:{method_color}18;color:{method_color};flex-shrink:0;">{method}</span>
           <span style="font-family:monospace;font-size:13px;color:#F5F5F5;flex:1;">{path_clean}</span>
-          <span style="font-size:12px;color:#404040;font-family:system-ui,sans-serif;">{name.replace('_', ' ')}</span>
+          <span style="font-size:12px;color:#404040;font-family:system-ui,sans-serif;">{name.replace("_", " ")}</span>
         </div>"""
 
     caps = card["capabilities"]
@@ -240,7 +244,9 @@ def _render_html(card: dict) -> str:
           <span style="font-size:10px;padding:3px 8px;border-radius:999px;background:{color}18;color:{color};letter-spacing:0.08em;font-family:system-ui,sans-serif;">{badge}</span>
         </div>"""
 
-    raw_json = json.dumps({k: v for k, v in card.items() if k not in ("mcp_tools", "mcp_resources")}, indent=2)
+    raw_json = json.dumps(
+        {k: v for k, v in card.items() if k not in ("mcp_tools", "mcp_resources")}, indent=2
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -441,7 +447,7 @@ def _render_html(card: dict) -> str:
 <nav>
   <a href="/" class="nav-logo">CHRONOS</a>
   <div class="nav-links">
-    <span class="badge-version">v{card['version']}</span>
+    <span class="badge-version">v{card["version"]}</span>
     <a href="#skills">Skills</a>
     <a href="#mcp">MCP Tools</a>
     <a href="#endpoints">Endpoints</a>
@@ -455,13 +461,13 @@ def _render_html(card: dict) -> str:
   <section class="hero">
     <p class="eyebrow">A2A Agent Card · Linux Foundation Protocol</p>
     <h1>CHRONOS<br>Agent Card.</h1>
-    <p class="hero-desc">{card['description']}</p>
+    <p class="hero-desc">{card["description"]}</p>
 
     <div class="chip-row">
-      <div class="chip"><span class="chip-dot"></span>A2A v{card['schemaVersion']}</div>
+      <div class="chip"><span class="chip-dot"></span>A2A v{card["schemaVersion"]}</div>
       <div class="chip"><span class="chip-dot"></span>MCP 1.x</div>
-      <div class="chip"><span class="chip-dot"></span>{len(card['skills'])} Skills</div>
-      <div class="chip"><span class="chip-dot"></span>{len(card.get('mcp_tools', []))} MCP Tools</div>
+      <div class="chip"><span class="chip-dot"></span>{len(card["skills"])} Skills</div>
+      <div class="chip"><span class="chip-dot"></span>{len(card.get("mcp_tools", []))} MCP Tools</div>
       <div class="chip"><span class="chip-dot"></span>10-Step Pipeline</div>
     </div>
 
@@ -476,7 +482,7 @@ def _render_html(card: dict) -> str:
 
   <!-- Skills -->
   <section class="section" id="skills">
-    <p class="section-label">A2A Skills · {len(card['skills'])} registered</p>
+    <p class="section-label">A2A Skills · {len(card["skills"])} registered</p>
     <h2>What CHRONOS<br>knows how to do.</h2>
     <div class="skills-grid">
       {skills_html}
@@ -485,7 +491,7 @@ def _render_html(card: dict) -> str:
 
   <!-- MCP Tools -->
   <section class="section" id="mcp">
-    <p class="section-label">MCP Server · {len(card.get('mcp_tools', []))} tools · {len(card.get('mcp_resources', []))} resources</p>
+    <p class="section-label">MCP Server · {len(card.get("mcp_tools", []))} tools · {len(card.get("mcp_resources", []))} resources</p>
     <h2>Native tool layer<br>for AI agents.</h2>
     <p style="font-size:13px;color:#707072;max-width:540px;margin-bottom:28px;line-height:1.7;">
       CHRONOS runs a native MCP server — start with
@@ -498,13 +504,13 @@ def _render_html(card: dict) -> str:
       {mcp_tools_html}
     </div>
     <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;">
-      {"".join(f'<span style="font-family:monospace;font-size:11px;padding:5px 12px;border-radius:999px;background:rgba(0,87,255,0.08);color:#0057FF;border:1px solid rgba(0,87,255,0.2);">{r}</span>' for r in card.get('mcp_resources', []))}
+      {"".join(f'<span style="font-family:monospace;font-size:11px;padding:5px 12px;border-radius:999px;background:rgba(0,87,255,0.08);color:#0057FF;border:1px solid rgba(0,87,255,0.2);">{r}</span>' for r in card.get("mcp_resources", []))}
     </div>
   </section>
 
   <!-- Endpoints -->
   <section class="section" id="endpoints">
-    <p class="section-label">REST Endpoints · {len(card['endpoints'])} routes</p>
+    <p class="section-label">REST Endpoints · {len(card["endpoints"])} routes</p>
     <h2>API surface.</h2>
     <div style="border:1px solid rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;">
       <div style="padding:0 20px;">
@@ -536,12 +542,12 @@ def _render_html(card: dict) -> str:
 
   <!-- Footer -->
   <footer>
-    <p>© 2026 CHRONOS · Autonomous Data Incident RCA · A2A v{card['schemaVersion']}</p>
+    <p>© 2026 CHRONOS · Autonomous Data Incident RCA · A2A v{card["schemaVersion"]}</p>
     <div style="display:flex;gap:24px;flex-wrap:wrap;">
       <a href="/.well-known/agent-card.json">Raw JSON ↗</a>
       <a href="/api/v1/health">Health ↗</a>
       <a href="/docs">API Docs ↗</a>
-      <a href="{card['homepage']}" target="_blank" rel="noopener">GitHub ↗</a>
+      <a href="{card["homepage"]}" target="_blank" rel="noopener">GitHub ↗</a>
     </div>
   </footer>
 
@@ -551,6 +557,7 @@ def _render_html(card: dict) -> str:
 
 
 # ── Route ─────────────────────────────────────────────────────────────────────
+
 
 @router.get("/.well-known/agent-card.json")
 async def get_agent_card(request: Request):

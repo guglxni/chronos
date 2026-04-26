@@ -44,9 +44,7 @@ async def notify_node(state: InvestigationState) -> InvestigationState:
             # Structural mismatch between the agent output and IncidentReport schema.
             # Log details and skip — the incident_report field in state is malformed.
             notification_status = f"failed: invalid incident_report schema ({exc})"
-            logger.error(
-                "Cannot send Slack notification — incident_report schema invalid: %s", exc
-            )
+            logger.error("Cannot send Slack notification — incident_report schema invalid: %s", exc)
     else:
         logger.debug("No incident report in state — skipping notification")
 

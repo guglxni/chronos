@@ -46,9 +46,7 @@ def setup_openllmetry() -> None:
 
     try:
         # Required for gen_ai semantic conventions in OpenTelemetry >= 1.28
-        os.environ.setdefault(
-            "OTEL_SEMCONV_STABILITY_OPT_IN", "gen_ai_latest_experimental"
-        )
+        os.environ.setdefault("OTEL_SEMCONV_STABILITY_OPT_IN", "gen_ai_latest_experimental")
         Traceloop.init(
             app_name=settings.otel_service_name,
             api_endpoint=settings.otel_exporter_otlp_endpoint,
@@ -62,7 +60,6 @@ def setup_openllmetry() -> None:
         )
     except (RuntimeError, ValueError, OSError) as exc:
         logger.warning(
-            "OpenLLMetry setup failed (non-fatal): %s. "
-            "CHRONOS will continue without LLM tracing.",
+            "OpenLLMetry setup failed (non-fatal): %s. CHRONOS will continue without LLM tracing.",
             exc,
         )

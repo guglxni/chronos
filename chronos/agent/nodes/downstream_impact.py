@@ -55,9 +55,7 @@ async def downstream_impact_node(state: InvestigationState) -> InvestigationStat
         owners_raw = node.get("owners", node.get("owner", []))
         if isinstance(owners_raw, dict):
             owners_raw = [owners_raw]
-        owner_names = [
-            o.get("displayName") or o.get("name", "") for o in owners_raw
-        ]
+        owner_names = [o.get("displayName") or o.get("name", "") for o in owners_raw]
         owner_names = [n for n in owner_names if n]
 
         downstream_assets.append(
@@ -87,9 +85,9 @@ async def downstream_impact_node(state: InvestigationState) -> InvestigationStat
     # when the graphify graph is missing or has no matching nodes.
     architectural_blast_radius: list[dict[str, Any]] = []
     high_impact_assets = [
-        a for a in downstream_assets
-        if "tier1" in a.get("tier", "").lower()
-        or "tier2" in a.get("tier", "").lower()
+        a
+        for a in downstream_assets
+        if "tier1" in a.get("tier", "").lower() or "tier2" in a.get("tier", "").lower()
     ][:_MAX_BLAST_PATHS]
 
     if entity_fqn and high_impact_assets:
@@ -102,7 +100,9 @@ async def downstream_impact_node(state: InvestigationState) -> InvestigationStat
             except Exception as exc:
                 logger.debug(
                     "graphify_shortest_path(%s, %s) failed: %s",
-                    entity_fqn, asset_fqn, exc,
+                    entity_fqn,
+                    asset_fqn,
+                    exc,
                 )
                 path = []
             if path:

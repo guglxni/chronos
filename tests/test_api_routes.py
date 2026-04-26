@@ -5,6 +5,7 @@ Uses Starlette TestClient (sync) so we can test the full request/response
 cycle including response_model validation, error handling, and HTTP status
 codes — without spawning a real server or touching any external services.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -21,6 +22,7 @@ client = TestClient(app, raise_server_exceptions=True)
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def clear_store():
@@ -46,6 +48,7 @@ def _make_report(incident_id: str = "inc-001", **kwargs) -> IncidentReport:
 
 
 # ── /api/v1/incidents — list ──────────────────────────────────────────────────
+
 
 def test_list_incidents_empty():
     resp = client.get("/api/v1/incidents")
@@ -73,8 +76,12 @@ def test_list_incidents_filter_by_status():
 
 
 def test_list_incidents_filter_by_root_cause():
-    incident_store.store(_make_report("inc-sc", root_cause_category=RootCauseCategory.SCHEMA_CHANGE))
-    incident_store.store(_make_report("inc-pf", root_cause_category=RootCauseCategory.PIPELINE_FAILURE))
+    incident_store.store(
+        _make_report("inc-sc", root_cause_category=RootCauseCategory.SCHEMA_CHANGE)
+    )
+    incident_store.store(
+        _make_report("inc-pf", root_cause_category=RootCauseCategory.PIPELINE_FAILURE)
+    )
     resp = client.get("/api/v1/incidents?root_cause=SCHEMA_CHANGE")
     assert resp.status_code == 200
     assert resp.json()["total"] == 1
@@ -103,6 +110,7 @@ def test_list_incidents_pagination():
 
 # ── /api/v1/incidents/{id} — get single ──────────────────────────────────────
 
+
 def test_get_incident_found():
     incident_store.store(_make_report("inc-X"))
     resp = client.get("/api/v1/incidents/inc-X")
@@ -117,6 +125,7 @@ def test_get_incident_not_found():
 
 
 # ── /api/v1/incidents/{id}/acknowledge ───────────────────────────────────────
+
 
 def test_acknowledge_incident():
     incident_store.store(_make_report("inc-ack"))
@@ -138,6 +147,7 @@ def test_acknowledge_not_found_returns_404():
 
 # ── /api/v1/incidents/{id}/resolve ───────────────────────────────────────────
 
+
 def test_resolve_incident():
     incident_store.store(_make_report("inc-res"))
     resp = client.post("/api/v1/incidents/inc-res/resolve?user=bob")
@@ -156,6 +166,7 @@ def test_resolve_not_found_returns_404():
 
 
 # ── /api/v1/stats ─────────────────────────────────────────────────────────────
+
 
 def test_stats_empty_store():
     resp = client.get("/api/v1/stats")
@@ -180,6 +191,7 @@ def test_stats_counts_correctly():
 
 # ── /api/v1/stats/patterns ────────────────────────────────────────────────────
 
+
 def test_patterns_returns_list():
     # Patterns only appear for entities with > 1 incident
     incident_store.store(_make_report("p1", root_cause_category=RootCauseCategory.SCHEMA_CHANGE))
@@ -203,6 +215,7 @@ def test_patterns_empty_when_no_recurring():
 
 # ── /api/v1/health ────────────────────────────────────────────────────────────
 
+
 def test_health_check():
     resp = client.get("/api/v1/health")
     assert resp.status_code == 200
@@ -211,6 +224,7 @@ def test_health_check():
 
 
 # ── /.well-known/agent-card.json ─────────────────────────────────────────────
+
 
 def test_agent_card_contains_name():
     resp = client.get("/.well-known/agent-card.json")
@@ -221,6 +235,7 @@ def test_agent_card_contains_name():
 
 
 # ── /api/v1/investigate — trigger ────────────────────────────────────────────
+
 
 def test_trigger_investigation_returns_incident_id():
     with patch(

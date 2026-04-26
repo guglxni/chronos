@@ -106,14 +106,10 @@ class MCPClient:
             )
             return {}
         except httpx.RequestError as exc:
-            logger.error(
-                "MCP transport error [%s/%s]: %r", server, tool_name, exc
-            )
+            logger.error("MCP transport error [%s/%s]: %r", server, tool_name, exc)
             return {}
         except json.JSONDecodeError as exc:
-            logger.error(
-                "MCP malformed JSON [%s/%s]: %s", server, tool_name, exc
-            )
+            logger.error("MCP malformed JSON [%s/%s]: %s", server, tool_name, exc)
             return {}
 
         # Unwrap JSON-RPC response

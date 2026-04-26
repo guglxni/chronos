@@ -3,6 +3,7 @@ Unit tests for CHRONOS LangGraph investigation nodes.
 
 MCP tool calls are patched so these tests run without live infrastructure.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -11,6 +12,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _base_state(**overrides) -> dict:
     base = {
@@ -28,6 +30,7 @@ def _base_state(**overrides) -> dict:
 
 # ── scope_failure_node ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_scope_failure_node_populates_failed_test():
     """Failed test is extracted from test results; step_result appended."""
@@ -43,8 +46,14 @@ async def test_scope_failure_node_populates_failed_test():
     ]
 
     with (
-        patch("chronos.agent.nodes.scope_failure.om_get_entity", new=AsyncMock(return_value=mock_entity)),
-        patch("chronos.agent.nodes.scope_failure.om_get_test_results", new=AsyncMock(return_value=mock_results)),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_entity",
+            new=AsyncMock(return_value=mock_entity),
+        ),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_test_results",
+            new=AsyncMock(return_value=mock_results),
+        ),
     ):
         result = await scope_failure_node(_base_state())
 
@@ -63,7 +72,9 @@ async def test_scope_failure_node_no_results():
 
     with (
         patch("chronos.agent.nodes.scope_failure.om_get_entity", new=AsyncMock(return_value={})),
-        patch("chronos.agent.nodes.scope_failure.om_get_test_results", new=AsyncMock(return_value=[])),
+        patch(
+            "chronos.agent.nodes.scope_failure.om_get_test_results", new=AsyncMock(return_value=[])
+        ),
     ):
         result = await scope_failure_node(_base_state())
 
@@ -72,6 +83,7 @@ async def test_scope_failure_node_no_results():
 
 
 # ── downstream_impact_node ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_downstream_impact_node_populates_assets():
@@ -126,6 +138,7 @@ async def test_downstream_impact_node_empty_lineage():
 
 
 # ── audit_correlation_node ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_audit_correlation_node_filters_suspicious():

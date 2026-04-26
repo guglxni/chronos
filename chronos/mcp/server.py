@@ -77,8 +77,8 @@ logger = logging.getLogger("chronos.mcp.server")
 # readOnlyHint=True: agent can call without confirmation prompts
 # idempotentHint=True: calling multiple times has no additional side effects
 _READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True)
-_TRIGGER   = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
-_MONITOR   = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
+_TRIGGER = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
+_MONITOR = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
 
 
 # ── FastMCP app ───────────────────────────────────────────────────────────────
@@ -99,6 +99,7 @@ mcp = FastMCP(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
@@ -174,7 +175,9 @@ async def trigger_investigation(
 
     logger.info(
         "MCP: queued investigation %s for '%s' (triggered_by=%s)",
-        incident_id, fqn, triggered_by,
+        incident_id,
+        fqn,
+        triggered_by,
     )
     return {
         "incident_id": incident_id,
@@ -241,8 +244,12 @@ async def list_incidents(
     limit = max(1, min(limit, 100))
     valid_statuses = {"open", "acknowledged", "resolved", "failed"}
     valid_causes = {
-        "schema_change", "upstream_data_failure", "pipeline_failure",
-        "data_drift", "infrastructure", "unknown",
+        "schema_change",
+        "upstream_data_failure",
+        "pipeline_failure",
+        "data_drift",
+        "infrastructure",
+        "unknown",
     }
 
     if status and status not in valid_statuses:
@@ -259,7 +266,8 @@ async def list_incidents(
         incidents = [i for i in incidents if i.status == status]
     if root_cause:
         incidents = [
-            i for i in incidents
+            i
+            for i in incidents
             if i.root_cause_category and i.root_cause_category.value == root_cause
         ]
 
@@ -297,9 +305,7 @@ async def query_lineage(
     if not entity_fqn or not entity_fqn.strip():
         raise ToolError("entity_fqn must not be blank")
     if direction not in ("upstream", "downstream"):
-        raise ToolError(
-            f"Invalid direction {direction!r}. Must be 'upstream' or 'downstream'."
-        )
+        raise ToolError(f"Invalid direction {direction!r}. Must be 'upstream' or 'downstream'.")
 
     depth = max(1, min(depth, 10))
     manifest_path = settings.dbt_manifest_path or None
@@ -310,9 +316,7 @@ async def query_lineage(
         nodes = _dbt.walk_downstream(entity_fqn.strip(), depth=depth, manifest_path=manifest_path)
 
     # walk_upstream/downstream returns list[dict] — node dicts directly
-    node_names = [
-        n.get("name", n.get("alias", "")) for n in nodes if isinstance(n, dict)
-    ]
+    node_names = [n.get("name", n.get("alias", "")) for n in nodes if isinstance(n, dict)]
     return {
         "entity": entity_fqn.strip(),
         "direction": direction,
@@ -391,7 +395,9 @@ async def get_graph_context(
         "entity": fqn,
         "node": _graphify.get_node(fqn, graph_path=graph_path),
         "community": _graphify.get_community(fqn, graph_path=graph_path),
-        "graph_context": _graphify.query_graph(fqn, depth=depth, limit=limit, graph_path=graph_path),
+        "graph_context": _graphify.query_graph(
+            fqn, depth=depth, limit=limit, graph_path=graph_path
+        ),
         "graph_available": _graphify.is_available(graph_path),
     }
 
@@ -455,12 +461,14 @@ async def poll_failures(
             if resp.status_code == 200:
                 for item in resp.json().get("data", []):
                     tc = item.get("testCase", {})
-                    failures.append({
-                        "entity_fqn": tc.get("entityFQN", ""),
-                        "test_name": tc.get("name", ""),
-                        "failure_message": item.get("result", ""),
-                        "timestamp": item.get("timestamp", 0),
-                    })
+                    failures.append(
+                        {
+                            "entity_fqn": tc.get("entityFQN", ""),
+                            "test_name": tc.get("name", ""),
+                            "failure_message": item.get("result", ""),
+                            "timestamp": item.get("timestamp", 0),
+                        }
+                    )
             else:
                 error_msg = f"OpenMetadata returned HTTP {resp.status_code}"
     except httpx.HTTPError as exc:

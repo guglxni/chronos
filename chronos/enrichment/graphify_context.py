@@ -75,8 +75,7 @@ def _render_block(payload: dict[str, Any]) -> str:
         lines.append("### Top architectural risk surface (god nodes)")
         for g in gods[:_MAX_GOD_NODES]:
             lines.append(
-                f"- {str(g.get('label', g.get('id', '')))[:120]}"
-                f" (degree={g.get('degree', 0)})"
+                f"- {str(g.get('label', g.get('id', '')))[:120]} (degree={g.get('degree', 0)})"
             )
         lines.append("")
 
@@ -118,7 +117,5 @@ def get_graphify_context(entity_name: str = "") -> str:
                 payload["neighbors"] = neighbours
                 break
 
-    payload["god_nodes"] = graphify_adapter.god_nodes(
-        limit=_MAX_GOD_NODES, graph_path=GRAPH_PATH
-    )
+    payload["god_nodes"] = graphify_adapter.god_nodes(limit=_MAX_GOD_NODES, graph_path=GRAPH_PATH)
     return _render_block(payload)

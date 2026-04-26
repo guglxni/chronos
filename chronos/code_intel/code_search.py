@@ -39,18 +39,49 @@ _SAFE_QUERY_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,256}$")
 # typical data platform: SQL/dbt/Python/YAML/Airflow/dbt configs.
 _RELEVANT_EXTENSIONS = frozenset(
     {
-        ".py", ".sql", ".yml", ".yaml", ".json", ".jinja", ".jinja2",
-        ".j2", ".ipynb", ".dbtignore", ".csv", ".tsv", ".toml", ".ini",
-        ".sh", ".scala", ".java", ".kt", ".rs", ".go", ".ts", ".tsx",
+        ".py",
+        ".sql",
+        ".yml",
+        ".yaml",
+        ".json",
+        ".jinja",
+        ".jinja2",
+        ".j2",
+        ".ipynb",
+        ".dbtignore",
+        ".csv",
+        ".tsv",
+        ".toml",
+        ".ini",
+        ".sh",
+        ".scala",
+        ".java",
+        ".kt",
+        ".rs",
+        ".go",
+        ".ts",
+        ".tsx",
     }
 )
 
 _LANGUAGE_HINTS = {
-    ".py": "python", ".sql": "sql", ".yml": "yaml", ".yaml": "yaml",
-    ".json": "json", ".ipynb": "jupyter", ".sh": "shell",
-    ".ts": "typescript", ".tsx": "typescript", ".scala": "scala",
-    ".java": "java", ".kt": "kotlin", ".rs": "rust", ".go": "go",
-    ".jinja": "jinja", ".jinja2": "jinja", ".j2": "jinja",
+    ".py": "python",
+    ".sql": "sql",
+    ".yml": "yaml",
+    ".yaml": "yaml",
+    ".json": "json",
+    ".ipynb": "jupyter",
+    ".sh": "shell",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".scala": "scala",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".rs": "rust",
+    ".go": "go",
+    ".jinja": "jinja",
+    ".jinja2": "jinja",
+    ".j2": "jinja",
 }
 
 _RG_AVAILABLE: bool | None = None
@@ -84,17 +115,22 @@ def _search_with_ripgrep(
     """Run ripgrep and return ``[{path, line, snippet, language}]``."""
     args = [
         "rg",
-        "--fixed-strings",          # treat query as a literal, no regex parsing
+        "--fixed-strings",  # treat query as a literal, no regex parsing
         "--no-heading",
         "--with-filename",
         "--line-number",
-        "--max-count", "3",        # at most 3 matches per file — we just need refs
-        "--max-filesize", "2M",
+        "--max-count",
+        "3",  # at most 3 matches per file — we just need refs
+        "--max-filesize",
+        "2M",
         "--ignore-case",
         # Limit file types to the relevant set — avoids matching node_modules etc.
-        "--type-add", "data:*.{sql,yml,yaml,json,jinja,jinja2,j2,csv,tsv}",
-        "--type-add", "code:*.{py,ts,tsx,scala,java,kt,rs,go,sh}",
-        "-tdata", "-tcode",
+        "--type-add",
+        "data:*.{sql,yml,yaml,json,jinja,jinja2,j2,csv,tsv}",
+        "--type-add",
+        "code:*.{py,ts,tsx,scala,java,kt,rs,go,sh}",
+        "-tdata",
+        "-tcode",
         "--",
         query,
         str(repo_path),
@@ -169,8 +205,10 @@ def _search_with_pywalk(
         # Skip hidden directories and common cache dirs cheaply.
         if any(part.startswith(".") and part not in {".github"} for part in path.parts):
             continue
-        if any(part in {"node_modules", "__pycache__", "target", "dist", "build"}
-               for part in path.parts):
+        if any(
+            part in {"node_modules", "__pycache__", "target", "dist", "build"}
+            for part in path.parts
+        ):
             continue
         try:
             if path.stat().st_size > PY_WALK_BYTES_LIMIT:

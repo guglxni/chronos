@@ -15,6 +15,7 @@ Three independent auth mechanisms — each follows the same pattern:
        In production the token MUST be set; in dev the check is skipped so
        curl tests work without configuration.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -35,6 +36,7 @@ _REPLAY_WINDOW_SECONDS = 300  # ±5 minutes matches Slack/GitHub convention
 
 
 # ── Bearer token auth ─────────────────────────────────────────────────────────
+
 
 async def verify_bearer_token(
     authorization: str | None = Header(default=None, alias="Authorization"),
@@ -87,6 +89,7 @@ async def verify_bearer_token(
 
 
 # ── HMAC webhook signature ────────────────────────────────────────────────────
+
 
 def _compute_hmac(body: bytes, secret: str, timestamp: str | None = None) -> str:
     """Return a 'sha256=<hex>' HMAC digest.
@@ -193,12 +196,8 @@ async def verify_openmetadata_signature(
 
 async def verify_openlineage_signature(
     request: Request,
-    x_openlineage_signature: str | None = Header(
-        default=None, alias="X-OpenLineage-Signature"
-    ),
-    x_openlineage_timestamp: str | None = Header(
-        default=None, alias="X-OpenLineage-Timestamp"
-    ),
+    x_openlineage_signature: str | None = Header(default=None, alias="X-OpenLineage-Signature"),
+    x_openlineage_timestamp: str | None = Header(default=None, alias="X-OpenLineage-Timestamp"),
 ) -> None:
     """Dependency: validate OpenLineage webhook HMAC signature."""
     await _verify_signature(

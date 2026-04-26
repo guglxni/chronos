@@ -9,6 +9,7 @@ When ``_is_configured()`` returns False (localhost / default dev values),
 all public functions return empty results immediately — no connection attempt,
 no exception.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -35,6 +36,7 @@ _EMBED_DIM = 1024
 
 # ─── Deterministic hash embedder ──────────────────────────────────────────────
 
+
 class _HashEmbedder:
     """Deterministic SHA-256-seeded unit-vector embedder — no external API."""
 
@@ -57,12 +59,14 @@ class _HashEmbedder:
 
 # ─── Configuration guard ──────────────────────────────────────────────────────
 
+
 def _is_configured() -> bool:
     """Return True only when a non-local FalkorDB host is set."""
     return settings.falkordb_host not in _LOCAL_HOSTS
 
 
 # ─── Lazy singleton ───────────────────────────────────────────────────────────
+
 
 async def _get_graphiti() -> Graphiti | None:
     global _graphiti_instance
@@ -114,6 +118,7 @@ async def _get_graphiti() -> Graphiti | None:
 
 # ─── Public API ───────────────────────────────────────────────────────────────
 
+
 async def add_episode(
     group_id: str,
     name: str,
@@ -132,7 +137,9 @@ async def add_episode(
         if g is None:
             return {}
 
-        ep_type = EpisodeType[source_type] if source_type in EpisodeType.__members__ else EpisodeType.text
+        ep_type = (
+            EpisodeType[source_type] if source_type in EpisodeType.__members__ else EpisodeType.text
+        )
         await g.add_episode(
             name=name,
             episode_body=content,

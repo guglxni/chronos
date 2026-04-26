@@ -70,9 +70,7 @@ def generate_provenance(incident_report: dict) -> ProvDocument:
 
     incident_id = incident_report.get("incident_id", "unknown")
     entity_fqn = incident_report.get("affected_entity_fqn", "unknown")
-    detected_at = _parse_iso_dt(
-        incident_report.get("detected_at")
-    ) or datetime.now(tz=UTC)
+    detected_at = _parse_iso_dt(incident_report.get("detected_at")) or datetime.now(tz=UTC)
     completed_at = _parse_iso_dt(incident_report.get("investigation_completed_at"))
 
     # ── Agent: CHRONOS software ───────────────────────────────────────────────
@@ -114,14 +112,12 @@ def generate_provenance(incident_report: dict) -> ProvDocument:
         {
             PROV_TYPE: "chronos:IncidentReport",
             "chronos:incident_id": incident_id,
-            "chronos:root_cause_category": incident_report.get(
-                "root_cause_category", "UNKNOWN"
-            ),
+            "chronos:root_cause_category": incident_report.get("root_cause_category", "UNKNOWN"),
             "chronos:confidence": str(incident_report.get("confidence", 0.0)),
             "chronos:business_impact": incident_report.get("business_impact", "medium"),
-            "chronos:probable_root_cause": incident_report.get(
-                "probable_root_cause", ""
-            )[:200],  # Truncate for PROV attribute limits
+            "chronos:probable_root_cause": incident_report.get("probable_root_cause", "")[
+                :200
+            ],  # Truncate for PROV attribute limits
         },
     )
     d.wasGeneratedBy(report_entity, activity, time=completed_at)

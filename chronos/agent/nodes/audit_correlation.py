@@ -33,9 +33,7 @@ async def audit_correlation_node(state: InvestigationState) -> InvestigationStat
 
     window_hours = settings.investigation_window_hours
     now_ms = int(datetime.now(tz=UTC).timestamp() * 1000)
-    start_ms = int(
-        (datetime.now(tz=UTC) - timedelta(hours=window_hours)).timestamp() * 1000
-    )
+    start_ms = int((datetime.now(tz=UTC) - timedelta(hours=window_hours)).timestamp() * 1000)
 
     # Fetch audit logs from OpenMetadata
     audit_events = await om_get_audit_logs(
@@ -52,9 +50,7 @@ async def audit_correlation_node(state: InvestigationState) -> InvestigationStat
     )
 
     # Flag suspicious event types
-    suspicious_actions = [
-        e for e in audit_events if e.get("eventType") in _SUSPICIOUS_EVENT_TYPES
-    ]
+    suspicious_actions = [e for e in audit_events if e.get("eventType") in _SUSPICIOUS_EVENT_TYPES]
 
     # Also flag any Graphiti facts mentioning user-initiated changes
     for fact in graphiti_facts:

@@ -1,4 +1,5 @@
 """Demo investigation endpoint — pre-seeded scenarios for the CHRONOS live demo."""
+
 from __future__ import annotations
 
 import asyncio
@@ -61,22 +62,31 @@ async def _run_demo_investigation(
         _push(queue, {"status": "update", "step": i, "node": name, "message": message})
         await asyncio.sleep(0.5)
         step_end = datetime.now(UTC)
-        step_results.append({
-            "step": i,
-            "name": name,
-            "started_at": step_start.isoformat(),
-            "completed_at": step_end.isoformat(),
-            "duration_ms": int((step_end - step_start).total_seconds() * 1000),
-            "summary": f"[demo] {message}",
-        })
+        step_results.append(
+            {
+                "step": i,
+                "name": name,
+                "started_at": step_start.isoformat(),
+                "completed_at": step_end.isoformat(),
+                "duration_ms": int((step_end - step_start).total_seconds() * 1000),
+                "summary": f"[demo] {message}",
+            }
+        )
 
-    _push(queue, {"status": "update", "step": 7, "node": "rca_synthesis", "message": _NODE_STEPS[-1][1]})
+    _push(
+        queue,
+        {"status": "update", "step": 7, "node": "rca_synthesis", "message": _NODE_STEPS[-1][1]},
+    )
 
     evidence = {
         "entity_fqn": scenario.get("entity_fqn", ""),
         "test_name": scenario.get("test_name", ""),
         "failure_message": scenario.get("failure_message", ""),
-        "failed_test": {"name": scenario.get("test_name", ""), "entity_fqn": scenario.get("entity_fqn", ""), "result": "FAILED"},
+        "failed_test": {
+            "name": scenario.get("test_name", ""),
+            "entity_fqn": scenario.get("entity_fqn", ""),
+            "result": "FAILED",
+        },
         "temporal_changes": scenario.get("temporal_changes", []),
         "schema_changes": scenario.get("schema_changes", []),
         "upstream_failures": scenario.get("upstream_failures", []),
@@ -117,18 +127,23 @@ async def _run_demo_investigation(
             priority = str(action.get("priority", "short_term")).lower()
             if priority not in ("immediate", "short_term", "long_term"):
                 priority = "short_term"
-            recommended_actions.append(RemediationStep(
-                description=str(action["description"])[:300],
-                priority=priority,
-                owner=str(action.get("owner", ""))[:100],
-            ))
+            recommended_actions.append(
+                RemediationStep(
+                    description=str(action["description"])[:300],
+                    priority=priority,
+                    owner=str(action.get("owner", ""))[:100],
+                )
+            )
 
     if recommended_actions and not any(a.priority == "immediate" for a in recommended_actions):
-        recommended_actions.insert(0, RemediationStep(
-            description="Immediately halt downstream processing and assess data quality impact.",
-            priority="immediate",
-            owner="data-engineering",
-        ))
+        recommended_actions.insert(
+            0,
+            RemediationStep(
+                description="Immediately halt downstream processing and assess data quality impact.",
+                priority="immediate",
+                owner="data-engineering",
+            ),
+        )
 
     raw_category = llm_result.get("root_cause_category", "UNKNOWN")
     try:
@@ -136,7 +151,9 @@ async def _run_demo_investigation(
     except ValueError:
         root_cause_category = RootCauseCategory.UNKNOWN
 
-    raw_impact = str(llm_result.get("business_impact") or scenario.get("business_impact_score") or "high").lower()
+    raw_impact = str(
+        llm_result.get("business_impact") or scenario.get("business_impact_score") or "high"
+    ).lower()
     try:
         business_impact = BusinessImpact(raw_impact)
     except ValueError:
@@ -157,7 +174,9 @@ async def _run_demo_investigation(
         affected_entity_fqn=scenario.get("entity_fqn", ""),
         test_name=scenario.get("test_name", ""),
         failure_message=scenario.get("failure_message", ""),
-        probable_root_cause=str(llm_result.get("probable_root_cause", "Unable to determine root cause"))[:1000],
+        probable_root_cause=str(
+            llm_result.get("probable_root_cause", "Unable to determine root cause")
+        )[:1000],
         root_cause_category=root_cause_category,
         confidence=confidence,
         evidence_chain=[],
@@ -173,17 +192,25 @@ async def _run_demo_investigation(
 
     store_incident(report)
 
-    _push(queue, {
-        "status": "investigation_complete",
-        "incident_id": incident_id,
-        "root_cause_category": report.root_cause_category.value,
-        "confidence": report.confidence,
-    })
+    _push(
+        queue,
+        {
+            "status": "investigation_complete",
+            "incident_id": incident_id,
+            "root_cause_category": report.root_cause_category.value,
+            "confidence": report.confidence,
+        },
+    )
 
     with contextlib.suppress(asyncio.QueueFull):
         queue.put_nowait(None)
 
-    logger.info("Demo investigation %s complete — %s %.2f", incident_id, report.root_cause_category, report.confidence)
+    logger.info(
+        "Demo investigation %s complete — %s %.2f",
+        incident_id,
+        report.root_cause_category,
+        report.confidence,
+    )
 
 
 class DemoRunRequest(BaseModel):

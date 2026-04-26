@@ -9,6 +9,7 @@ Covers:
   L9    — CORS wildcard rejected at settings validation
   L10   — /docs /redoc /openapi.json disabled in production (main.py logic)
 """
+
 from __future__ import annotations
 
 import os
@@ -30,6 +31,7 @@ client = TestClient(app, raise_server_exceptions=True)
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def clear_store():
@@ -75,6 +77,7 @@ def _dev(**overrides) -> Settings:
 
 
 # ── H1/H2 — Bearer auth on acknowledge and resolve ───────────────────────────
+
 
 class TestBearerAuth:
     """Mutation endpoints require bearer auth when API_BEARER_TOKEN is configured."""
@@ -163,6 +166,7 @@ class TestBearerAuth:
 
 # ── H3 — HMAC timestamp required in production ───────────────────────────────
 
+
 class TestHmacTimestampRequired:
     """In production, X-OM-Timestamp must be present to prevent replay attacks."""
 
@@ -216,6 +220,7 @@ class TestHmacTimestampRequired:
 
 # ── M5 — LANGFUSE_HOST HTTPS in production ────────────────────────────────────
 
+
 class TestLangfuseHttpsProduction:
     def test_prod_http_langfuse_raises(self):
         with pytest.raises(ValueError, match="LANGFUSE_HOST"):
@@ -231,6 +236,7 @@ class TestLangfuseHttpsProduction:
 
 
 # ── M6 — Prompt sanitiser actually neutralises injection phrases ──────────────
+
 
 class TestPromptSanitizer:
     def test_ignore_previous_is_neutralised(self):
@@ -293,6 +299,7 @@ class TestPromptSanitizer:
 
 # ── L9 — CORS wildcard rejected ───────────────────────────────────────────────
 
+
 class TestCorsWildcard:
     def test_cors_wildcard_rejected_in_dev(self):
         with pytest.raises(ValueError, match="wildcard"):
@@ -304,6 +311,7 @@ class TestCorsWildcard:
 
 
 # ── L10 — Docs disabled in production ────────────────────────────────────────
+
 
 class TestDocsSecurity:
     def test_docs_url_disabled_in_prod(self):

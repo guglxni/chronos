@@ -87,6 +87,7 @@ def _normalize_list_result(result: Any, *candidate_keys: str) -> list[dict[str, 
 
 # ─── OpenMetadata tools ────────────────────────────────────────────────────────
 
+
 async def om_get_entity(fqn: str) -> dict[str, Any]:
     """Fetch a single entity by its fully qualified name."""
     return await mcp_client.call_tool(
@@ -175,6 +176,7 @@ async def om_search_entities(
 
 # ─── Graphiti tools ────────────────────────────────────────────────────────────
 
+
 async def graphiti_add_episode(
     group_id: str,
     name: str,
@@ -257,14 +259,10 @@ async def gitnexus_search_files(query: str) -> list[dict[str, Any]]:
     otherwise a pure-Python walker. Returns ``[{path, line, snippet, language}]``.
     """
     if not settings.code_intel_prefer_local:
-        remote = await _try_remote_gitnexus(
-            "search_files", {"query": query}, "files", "results"
-        )
+        remote = await _try_remote_gitnexus("search_files", {"query": query}, "files", "results")
         if remote is not None:
             return remote
-    return await _local_code_search.asearch_entity_references(
-        query, _resolve_repo_path()
-    )
+    return await _local_code_search.asearch_entity_references(query, _resolve_repo_path())
 
 
 async def gitnexus_get_file_references(entity_name: str) -> list[dict[str, Any]]:
@@ -275,15 +273,15 @@ async def gitnexus_get_file_references(entity_name: str) -> list[dict[str, Any]]
     """
     if not settings.code_intel_prefer_local:
         remote = await _try_remote_gitnexus(
-            "get_file_references", {"entity_name": entity_name},
-            "references", "files",
+            "get_file_references",
+            {"entity_name": entity_name},
+            "references",
+            "files",
         )
         if remote is not None:
             return remote
 
-    manifest_files = _dbt_manifest.get_node_files(
-        entity_name, _resolve_manifest_path()
-    )
+    manifest_files = _dbt_manifest.get_node_files(entity_name, _resolve_manifest_path())
     scan_files = await _local_code_search.asearch_entity_references(
         entity_name, _resolve_repo_path()
     )
@@ -310,14 +308,14 @@ async def gitnexus_get_commits(
     """
     if not settings.code_intel_prefer_local:
         remote = await _try_remote_gitnexus(
-            "get_commits", {"entity_name": entity_name, "limit": limit},
-            "commits", "results",
+            "get_commits",
+            {"entity_name": entity_name, "limit": limit},
+            "commits",
+            "results",
         )
         if remote is not None:
             return remote
-    return await _local_git.aget_commits_for_entity(
-        entity_name, _resolve_repo_path(), limit=limit
-    )
+    return await _local_git.aget_commits_for_entity(entity_name, _resolve_repo_path(), limit=limit)
 
 
 # ─── Graphify tools (live in-process graph queries) ───────────────────────────
@@ -348,9 +346,7 @@ async def graphify_get_neighbors(
     limit: int = 25,
 ) -> list[dict[str, Any]]:
     """Return directly-connected nodes with edge metadata."""
-    return _graphify_adapter.get_neighbors(
-        query, limit=limit, graph_path=_resolve_graph_path()
-    )
+    return _graphify_adapter.get_neighbors(query, limit=limit, graph_path=_resolve_graph_path())
 
 
 async def graphify_get_community(
@@ -358,9 +354,7 @@ async def graphify_get_community(
     limit: int = 50,
 ) -> dict[str, Any]:
     """Return all nodes in the same louvain community as ``query``."""
-    return _graphify_adapter.get_community(
-        query, limit=limit, graph_path=_resolve_graph_path()
-    )
+    return _graphify_adapter.get_community(query, limit=limit, graph_path=_resolve_graph_path())
 
 
 async def graphify_shortest_path(
@@ -368,16 +362,12 @@ async def graphify_shortest_path(
     target: str,
 ) -> list[dict[str, Any]]:
     """Find the shortest code-level path between two nodes."""
-    return _graphify_adapter.shortest_path(
-        source, target, graph_path=_resolve_graph_path()
-    )
+    return _graphify_adapter.shortest_path(source, target, graph_path=_resolve_graph_path())
 
 
 async def graphify_god_nodes(limit: int = 10) -> list[dict[str, Any]]:
     """Return the most-connected nodes in the graph (architectural risk)."""
-    return _graphify_adapter.god_nodes(
-        limit=limit, graph_path=_resolve_graph_path()
-    )
+    return _graphify_adapter.god_nodes(limit=limit, graph_path=_resolve_graph_path())
 
 
 async def graphify_health() -> dict[str, Any]:
@@ -390,9 +380,7 @@ async def graphify_health() -> dict[str, Any]:
 
 async def dbt_get_node(entity_name: str) -> dict[str, Any]:
     """Locate the dbt node for an entity FQN — empty dict when not found."""
-    return _dbt_manifest.get_node_by_entity(
-        entity_name, _resolve_manifest_path()
-    )
+    return _dbt_manifest.get_node_by_entity(entity_name, _resolve_manifest_path())
 
 
 async def dbt_get_parents(entity_name: str) -> list[dict[str, Any]]:
@@ -410,9 +398,7 @@ async def dbt_walk_upstream(
     depth: int = 3,
 ) -> list[dict[str, Any]]:
     """BFS upstream through the dbt DAG."""
-    return _dbt_manifest.walk_upstream(
-        entity_name, depth, _resolve_manifest_path()
-    )
+    return _dbt_manifest.walk_upstream(entity_name, depth, _resolve_manifest_path())
 
 
 async def dbt_walk_downstream(
@@ -420,9 +406,7 @@ async def dbt_walk_downstream(
     depth: int = 3,
 ) -> list[dict[str, Any]]:
     """BFS downstream through the dbt DAG."""
-    return _dbt_manifest.walk_downstream(
-        entity_name, depth, _resolve_manifest_path()
-    )
+    return _dbt_manifest.walk_downstream(entity_name, depth, _resolve_manifest_path())
 
 
 async def dbt_health() -> dict[str, Any]:

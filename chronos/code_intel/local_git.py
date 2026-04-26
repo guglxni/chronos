@@ -91,7 +91,9 @@ def _run_git(args: list[str], repo_path: Path) -> str:
     if result.returncode != 0:
         logger.debug(
             "git %s exit=%d stderr=%s",
-            " ".join(args), result.returncode, result.stderr.strip()[:200],
+            " ".join(args),
+            result.returncode,
+            result.stderr.strip()[:200],
         )
         return ""
     return result.stdout

@@ -66,3 +66,57 @@
 
 ---
 
+## Construction Remediation Request (Code Review Fix Plan)
+**Timestamp**: 2026-04-21T13:15:53Z
+**User Input**: "FIX_PLAN.md
+	carefully and comprehensively implement the fixes documented in attached md file and use aidlc workflows for the same - ensure u use agentic skills as needed core writing clean code with good code quality and also security skills to ensure well made software that is security hardened and protects the user - go ahead"
+**AI Response**: Loaded mandatory AI-DLC common workflow rules, extension opt-in metadata, enabled security baseline rules, Python/code-quality and security skills, and resumed from existing aidlc-state.md. Parsed internal-docs/FIX_PLAN.md as the approved remediation source of truth and began implementation verification.
+**Context**: Workspace Detection + Session Continuity + Construction Code Generation resumption for fix-plan-driven hardening.
+
+---
+
+## Construction Remediation Continuation
+**Timestamp**: 2026-04-21T18:04:01Z
+**User Input**: "continue"
+**AI Response**: Continued execution of the approved fix plan to closure. Completed remaining plan-level tracking tasks by updating acceptance checkboxes in internal-docs/FIX_PLAN.md, removed the last route-level nested `.get(...).get(...)` chain in `chronos/api/routes/webhooks.py`, and refreshed AIDLC state tracking with remediation completion details.
+**Context**: Construction Phase — Code generation remediation closure and documentation synchronization.
+
+---
+
+## Construction Remediation Validation and Closure
+**Timestamp**: 2026-04-21T18:04:01Z
+**User Input**: "<conversation-summary> ... </conversation-summary>"
+**AI Response**: Verified closure criteria and recorded final validation outcomes:
+- `pytest tests/` → 14 passed, 3 skipped
+- `mypy chronos/` → success (no issues)
+- `ruff check` on hardened scope + `ruff check chronos --select PLC0415` → all checks passed
+- Security posture validated against enabled Security Baseline extension: secret management hardening, fail-closed webhook auth in production, request rate limiting, narrowed exception handling, and safer production error responses
+**Context**: Construction Phase completion evidence logged to satisfy AIDLC audit and acceptance requirements.
+
+---
+
+## Construction Remediation Final Verification (Continuation)
+**Timestamp**: 2026-04-21T18:26:37Z
+**User Input**: "continue"
+**AI Response**: Re-ran full verification and confirmed remediation remains green after the latest edits:
+- `pytest tests/ -q` → 14 passed, 3 skipped
+- `mypy --config-file mypy.ini chronos` → success, no issues
+- `ruff check` on remediation scope → all checks passed
+Recorded closure evidence and completed remaining remediation tasks.
+**Context**: Construction Phase remediation closure — final validation and audit completion.
+
+---
+
+## Unit 8 — Local Code Intelligence Layer
+**Timestamp**: 2026-04-26T00:00:00Z
+**User Input**: "okay then ensure functional real code and make the enhancements and integrations as you deem best - brainstorm, research, think about it and implement the same - also document everything as u go - MOST IMPORTANTLY ENSURE FUNCTIONAL REAL CODE THAT WORKS - USE BEST PRACTICES TO DEVELOP the same and aidlc workflows"
+**AI Response**:
+1. Research established that the wired GitNexus MCP (`gitnexus serve --stdio`) was a stub — upstream is browser-only / non-commercial — and that the `get_graphify_context` integration was a naive markdown grep.
+2. Designed Unit 8 (`aidlc-docs/code_intel_design.md`) — a five-module local code intelligence layer (`local_git`, `code_search`, `sql_parser`, `graphify_adapter`, `dbt_manifest`) with a "local-first" fallback pattern in `chronos.mcp.tools`.
+3. Implemented 5 modules + new tools (`graphify_*`, `dbt_*`) + `MCPServerType.GRAPHIFY` + 4 new settings + 5 new TypedDict state fields. Wired into Steps 1, 4, 5, and 7 of the LangGraph pipeline.
+4. Authored 38 unit tests (`tests/test_code_intel.py`, `tests/test_nodes_code_intel.py`, `tests/test_graphify_context.py`) — all pass. Verified 0 regressions against the existing suite (the 2 pre-existing failures relate to missing `prov` and `slowapi` packages in the local Python env, present on `main` without these changes).
+5. Updated `pyproject.toml` (added `networkx`, `sqlglot`), `aidlc-state.md` (Unit 8 entry), and architecture stack notes.
+**Context**: Adaptive workflow — added Unit 8 rather than retro-fitting an existing stage. Skipped PyDriller / git-mcp-server / mcp-ripgrep / Semgrep MCP after evaluating each against the existing in-process subprocess + ripgrep + sqlglot stack (in-process is faster than MCP roundtrip; cargo-cult adoption avoided). Added the dbt manifest parser as the standout external integration — it gives exact dbt DAG lineage with zero new dependencies and directly addresses the data-pipeline use case CHRONOS investigates.
+
+---
+

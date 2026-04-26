@@ -14,6 +14,7 @@ The graph itself (``agent/graph.py``) is only compiled on the first call to
 ``_get_graph()``, not at module import time.  This keeps startup fast and lets
 the test suite import ``chronos.api`` without triggering LangGraph compilation.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -61,6 +62,7 @@ def _get_graph() -> tuple[Any, Callable | None]:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+
 async def run_investigation(
     trigger: InvestigationTrigger,
     incident_id: str | None = None,
@@ -104,9 +106,7 @@ async def run_investigation(
             callbacks.append(cb)
     config = {"callbacks": callbacks} if callbacks else {}
 
-    logger.info(
-        "Starting investigation %s for entity '%s'", incident_id, trigger.entity_fqn
-    )
+    logger.info("Starting investigation %s for entity '%s'", incident_id, trigger.entity_fqn)
 
     # Publish a placeholder so the frontend can show INVESTIGATING status
     # immediately rather than waiting for the full 10-step pipeline.
@@ -129,9 +129,7 @@ async def run_investigation(
             timeout=settings.investigation_timeout_seconds,
         )
 
-        elapsed_ms = int(
-            (datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000
-        )
+        elapsed_ms = int((datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000)
 
         report_data = result.get("incident_report")
         if report_data:
@@ -168,9 +166,7 @@ async def run_investigation(
             incident_id,
             settings.investigation_timeout_seconds,
         )
-        elapsed_ms = int(
-            (datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000
-        )
+        elapsed_ms = int((datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000)
         error_report = placeholder.model_copy(
             update={
                 "probable_root_cause": f"Investigation timed out after {settings.investigation_timeout_seconds}s",
@@ -197,9 +193,7 @@ async def run_investigation(
         # dashboard don't show it forever as "Investigation in progress…".
         # Without this, any webhook that triggers a handler exception leaves an
         # orphan INVESTIGATING placeholder until FIFO eviction catches up.
-        elapsed_ms = int(
-            (datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000
-        )
+        elapsed_ms = int((datetime.now(tz=UTC) - investigation_start).total_seconds() * 1000)
         error_report = placeholder.model_copy(
             update={
                 "probable_root_cause": f"Investigation failed ({type(exc).__name__})",

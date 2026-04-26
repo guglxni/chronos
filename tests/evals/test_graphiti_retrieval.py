@@ -36,22 +36,17 @@ async def test_graphiti_context_recall():
         from ragas import evaluate
         from ragas.metrics import context_precision, context_recall
     except ImportError:
-        pytest.skip(
-            "ragas or datasets not installed — run: pip install -e '.[eval]'"
-        )
+        pytest.skip("ragas or datasets not installed — run: pip install -e '.[eval]'")
 
     # Simulated retrieval results.
     # In a full integration test, these would come from a live Graphiti query.
     data = {
-        "question": [
-            "What changed in table orders in the last 72 hours?"
-        ],
+        "question": ["What changed in table orders in the last 72 hours?"],
         "contexts": [
             [
                 "Schema change: order_id column changed from NOT NULL to NULL "
                 "at 2026-04-21T14:00:00Z",
-                "Audit log: data_engineer modified orders table schema at "
-                "2026-04-21T13:58:00Z",
+                "Audit log: data_engineer modified orders table schema at 2026-04-21T13:58:00Z",
                 "Test case column_values_to_be_not_null failed on orders.order_id "
                 "with 1523 null values at 2026-04-21T14:00:00Z",
             ]

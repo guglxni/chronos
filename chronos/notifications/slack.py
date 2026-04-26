@@ -63,6 +63,7 @@ def _render_owner_mention(owner: str) -> str:
         return slack_id
     return f"@{owner}"
 
+
 SEVERITY_EMOJI = {
     "critical": "🔴",
     "high": "🟠",
@@ -230,9 +231,7 @@ async def send_incident_notification(incident_report: IncidentReport) -> bool:
             return True
     except httpx.RequestError as exc:
         # Network-level failure (DNS, TCP, timeout before response)
-        logger.error(
-            "Slack notification network error for incident %s: %r", incident_id, exc
-        )
+        logger.error("Slack notification network error for incident %s: %r", incident_id, exc)
         return False
     except httpx.HTTPStatusError as exc:
         # 4xx/5xx from the Slack API (after response arrived)

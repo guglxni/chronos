@@ -213,8 +213,7 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
         missing_fields = [key for key in required if key not in result]
         if missing_fields:
             raise ValueError(
-                "LiteLLM synthesis response missing required fields: "
-                + ", ".join(missing_fields)
+                "LiteLLM synthesis response missing required fields: " + ", ".join(missing_fields)
             )
         logger.info(
             "RCA synthesis complete: category=%s, confidence=%s",

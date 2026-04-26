@@ -3,6 +3,7 @@ Unit tests for the 7 CHRONOS LangGraph nodes not covered in test_nodes.py.
 
 All MCP and LLM calls are patched — tests exercise node business logic only.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ import httpx
 import pytest
 
 # ── shared state factory ───────────────────────────────────────────────────────
+
 
 def _base_state(**overrides) -> dict:
     base = {
@@ -46,6 +48,7 @@ _MINIMAL_REPORT: dict = {
 
 # ── lineage_walk_node ──────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_lineage_walk_finds_upstream_failures():
     from chronos.agent.nodes.lineage_walk import lineage_walk_node
@@ -57,9 +60,7 @@ async def test_lineage_walk_finds_upstream_failures():
         ]
     }
     # First upstream node has a failed test; second has none
-    mock_results_failed = [
-        {"name": "null_check", "testCaseResult": {"testCaseStatus": "Failed"}}
-    ]
+    mock_results_failed = [{"name": "null_check", "testCaseResult": {"testCaseStatus": "Failed"}}]
     mock_results_ok: list = []
 
     with (
@@ -102,6 +103,7 @@ async def test_lineage_walk_empty_upstream():
 
 
 # ── temporal_diff_node ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_temporal_diff_extracts_schema_changes():
@@ -160,6 +162,7 @@ async def test_temporal_diff_empty_history():
 
 # ── prior_investigations_node ─────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_prior_investigations_combines_facts_and_nodes():
     from chronos.agent.nodes.prior_investigations import prior_investigations_node
@@ -204,6 +207,7 @@ async def test_prior_investigations_empty():
 
 # ── code_blast_radius_node ────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_code_blast_radius_populates_files_and_commits():
     from chronos.agent.nodes.code_blast_radius import code_blast_radius_node
@@ -212,9 +216,7 @@ async def test_code_blast_radius_populates_files_and_commits():
         {"path": "dbt/models/orders.sql"},
         {"path": "airflow/dags/orders_dag.py"},
     ]
-    mock_commits = [
-        {"sha": "abc123", "message": "Rename order_id column", "author": "alice"}
-    ]
+    mock_commits = [{"sha": "abc123", "message": "Rename order_id column", "author": "alice"}]
 
     with (
         patch(
@@ -247,6 +249,7 @@ async def test_code_blast_radius_empty_entity_skips_search():
 
 
 # ── persist_trace_node ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_persist_trace_node_success():
@@ -301,6 +304,7 @@ async def test_persist_trace_node_graphiti_error_is_nonfatal():
 
 # ── notify_node ───────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_notify_node_sends_when_report_present():
     from chronos.agent.nodes.notify import notify_node
@@ -343,6 +347,7 @@ async def test_notify_node_failed_when_slack_returns_false():
 
 # ── rca_synthesis_node ────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_rca_synthesis_node_builds_incident_report():
     from chronos.agent.nodes.rca_synthesis import rca_synthesis_node
@@ -362,7 +367,13 @@ async def test_rca_synthesis_node_builds_incident_report():
 
     state = _base_state(
         downstream_assets=[
-            {"fqn": "db.schema.revenue", "display_name": "Revenue", "tier": "Tier1", "owners": ["alice"], "domain": ""},
+            {
+                "fqn": "db.schema.revenue",
+                "display_name": "Revenue",
+                "tier": "Tier1",
+                "owners": ["alice"],
+                "domain": "",
+            },
         ],
         upstream_lineage=[],
         prior_investigations=[],

@@ -87,9 +87,7 @@ def _parse_evidence_chain(raw_chain: list[Any]) -> list[EvidenceItem]:
             confidence = max(0.0, min(1.0, float(item.get("confidence", 0.5))))
         except (TypeError, ValueError):
             confidence = 0.5
-        items.append(
-            EvidenceItem(source=source, description=description, confidence=confidence)
-        )
+        items.append(EvidenceItem(source=source, description=description, confidence=confidence))
     return items
 
 
@@ -106,9 +104,7 @@ def _parse_remediation_steps(raw_actions: list[Any]) -> list[RemediationStep]:
         if priority not in _VALID_PRIORITIES:
             priority = "short_term"
         owner = str(action.get("owner", ""))[:100]
-        steps.append(
-            RemediationStep(description=description, priority=priority, owner=owner)
-        )
+        steps.append(RemediationStep(description=description, priority=priority, owner=owner))
 
     # Ensure at least one immediate step (LLM prompt rule #5).
     # Previously we rewrote the LLM's first step's priority to "immediate",
@@ -162,17 +158,13 @@ def _parse_related_incidents(raw_priors: list[Any]) -> list[RelatedIncident]:
         raw = item.get("fact") or item.get("description") or ""
         try:
             parsed: dict[str, Any] = (
-                json.loads(raw)
-                if isinstance(raw, str) and raw.lstrip().startswith("{")
-                else item
+                json.loads(raw) if isinstance(raw, str) and raw.lstrip().startswith("{") else item
             )
         except (json.JSONDecodeError, TypeError):
             parsed = item
 
         incident_id = str(parsed.get("incident_id", "")).strip()
-        entity_fqn = str(
-            parsed.get("entity_fqn") or parsed.get("affected_entity_fqn", "")
-        ).strip()
+        entity_fqn = str(parsed.get("entity_fqn") or parsed.get("affected_entity_fqn", "")).strip()
         # Drop entries with identifiers that don't match the safe charset —
         # prevents Graphiti-sourced strings from smuggling control chars,
         # markdown, or overlong values into the UI / Slack message.
@@ -236,11 +228,7 @@ def _build_timeline(
                 if completed.tzinfo is None:
                     completed = completed.replace(tzinfo=UTC)
 
-            duration_ms = (
-                int((completed - started).total_seconds() * 1000)
-                if completed
-                else None
-            )
+            duration_ms = int((completed - started).total_seconds() * 1000) if completed else None
             entries.append(
                 InvestigationTimelineEntry(
                     step=int(sr.get("step", 0)),
@@ -287,9 +275,7 @@ async def rca_synthesis_node(state: InvestigationState) -> InvestigationState:
         root_cause_category = RootCauseCategory.UNKNOWN
 
     raw_impact = str(
-        llm_result.get("business_impact")
-        or state.get("business_impact_score")
-        or "medium"
+        llm_result.get("business_impact") or state.get("business_impact_score") or "medium"
     ).lower()
     try:
         business_impact = BusinessImpact(raw_impact)
@@ -303,18 +289,14 @@ async def rca_synthesis_node(state: InvestigationState) -> InvestigationState:
 
     # ── Parse rich LLM-generated fields ───────────────────────────────────────
     evidence_chain = _parse_evidence_chain(llm_result.get("evidence_chain") or [])
-    recommended_actions = _parse_remediation_steps(
-        llm_result.get("recommended_actions") or []
-    )
+    recommended_actions = _parse_remediation_steps(llm_result.get("recommended_actions") or [])
 
     # ── Enrich from pipeline state ─────────────────────────────────────────────
     affected_downstream = _parse_downstream_assets(state.get("downstream_assets") or [])
     upstream_assets = _parse_downstream_assets(state.get("upstream_lineage") or [])
     graphify_context = get_graphify_context(state.get("entity_fqn", ""))
     investigation_timeline = _build_timeline(state.get("step_results") or [])
-    related_past_incidents = _parse_related_incidents(
-        state.get("prior_investigations") or []
-    )
+    related_past_incidents = _parse_related_incidents(state.get("prior_investigations") or [])
 
     # ── Normalise triggered_at timezone ───────────────────────────────────────
     triggered_at = state.get("triggered_at")
@@ -325,9 +307,7 @@ async def rca_synthesis_node(state: InvestigationState) -> InvestigationState:
     # MCP call / LLM token counts are tracked as monotonic state counters that
     # each tool/LLM helper increments.  Default 0 is honest — indicates nothing
     # was observed rather than lying with a fabricated value.
-    business_impact_reasoning = str(
-        llm_result.get("business_impact_reasoning", "")
-    )[:500]
+    business_impact_reasoning = str(llm_result.get("business_impact_reasoning", ""))[:500]
     llm_model_used = str(llm_result.get("model") or state.get("llm_model_used", ""))[:64]
     raw_mcp = state.get("total_mcp_calls") or 0
     raw_tokens = state.get("total_llm_tokens") or 0
@@ -349,9 +329,7 @@ async def rca_synthesis_node(state: InvestigationState) -> InvestigationState:
         affected_entity_fqn=state.get("entity_fqn", ""),
         test_name=state.get("test_name", ""),
         failure_message=str(state.get("failure_message", ""))[:500],
-        probable_root_cause=str(
-            llm_result.get("probable_root_cause", "Unknown")
-        )[:1000],
+        probable_root_cause=str(llm_result.get("probable_root_cause", "Unknown"))[:1000],
         root_cause_category=root_cause_category,
         confidence=confidence,
         evidence_chain=evidence_chain,

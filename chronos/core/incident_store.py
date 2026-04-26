@@ -17,6 +17,7 @@ one would ``KeyError`` on the second ``del``.  ``_write_lock`` serialises all
 mutations to make eviction deterministic.  Reads (``get`` / ``list_all``) remain
 lock-free because dict reads are atomic under CPython's GIL.
 """
+
 from __future__ import annotations
 
 import logging

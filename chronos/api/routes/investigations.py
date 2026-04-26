@@ -84,6 +84,7 @@ def _on_investigation_done(incident_id: str) -> Any:
     Uses a closure so the callback captures the correct incident_id even when
     multiple investigations are in flight simultaneously.
     """
+
     def _cb(_task: asyncio.Task) -> None:
         cleanup = asyncio.create_task(
             _evict_orphan_queue(incident_id),
@@ -156,7 +157,7 @@ async def stream_investigation(
         raise HTTPException(
             status_code=404,
             detail=f"No active investigation stream for ID '{incident_id}'. "
-                   "Trigger an investigation first.",
+            "Trigger an investigation first.",
         )
 
     expected_token = _sse_tokens.get(incident_id)
@@ -171,23 +172,17 @@ async def stream_investigation(
             # Initial connection acknowledgement
             yield {
                 "event": "connected",
-                "data": json.dumps(
-                    {"status": "connected", "incident_id": incident_id}
-                ),
+                "data": json.dumps({"status": "connected", "incident_id": incident_id}),
             }
 
             while True:
                 try:
-                    event = await asyncio.wait_for(
-                        queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL
-                    )
+                    event = await asyncio.wait_for(queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL)
                     if event is None:
                         # Sentinel — investigation pipeline finished
                         yield {
                             "event": "complete",
-                            "data": json.dumps(
-                                {"status": "complete", "incident_id": incident_id}
-                            ),
+                            "data": json.dumps({"status": "complete", "incident_id": incident_id}),
                         }
                         break
                     yield {"event": "update", "data": json.dumps(event)}
@@ -195,9 +190,7 @@ async def stream_investigation(
                     # Heartbeat keeps the HTTP connection alive
                     yield {
                         "event": "heartbeat",
-                        "data": json.dumps(
-                            {"status": "heartbeat", "incident_id": incident_id}
-                        ),
+                        "data": json.dumps({"status": "heartbeat", "incident_id": incident_id}),
                     }
         finally:
             # Always remove the queue and token so stale entries don't accumulate

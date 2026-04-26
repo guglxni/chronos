@@ -32,14 +32,8 @@ async def receive_openlineage_event(event: OpenLineageRunEvent) -> bool:
             "event_time": event.eventTime,
             "job": event.job,
             "run": {k: v for k, v in event.run.items() if k in ("runId", "facets")},
-            "inputs": [
-                {"namespace": inp.namespace, "name": inp.name}
-                for inp in event.inputs
-            ],
-            "outputs": [
-                {"namespace": out.namespace, "name": out.name}
-                for out in event.outputs
-            ],
+            "inputs": [{"namespace": inp.namespace, "name": inp.name} for inp in event.inputs],
+            "outputs": [{"namespace": out.namespace, "name": out.name} for out in event.outputs],
         },
         default=str,
     )

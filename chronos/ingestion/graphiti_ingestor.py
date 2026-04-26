@@ -46,9 +46,7 @@ async def ingest_om_event(payload: OpenMetadataWebhookPayload) -> bool:
         default=str,
     )
 
-    name = (
-        f"{payload.eventType}:{payload.entityFullyQualifiedName}:{payload.timestamp}"
-    )
+    name = f"{payload.eventType}:{payload.entityFullyQualifiedName}:{payload.timestamp}"
 
     try:
         result = await graphiti_add_episode(
@@ -64,12 +62,8 @@ async def ingest_om_event(payload: OpenMetadataWebhookPayload) -> bool:
             logger.warning("Graphiti returned empty result for episode: %s", name)
         return success
     except httpx.HTTPError as exc:
-        logger.error(
-            "Failed to ingest OM event %s (HTTP %s): %r", name, type(exc).__name__, exc
-        )
+        logger.error("Failed to ingest OM event %s (HTTP %s): %r", name, type(exc).__name__, exc)
         return False
     except (json.JSONDecodeError, ValueError) as exc:
-        logger.error(
-            "Failed to ingest OM event %s (parse error): %s", name, exc
-        )
+        logger.error("Failed to ingest OM event %s (parse error): %s", name, exc)
         return False

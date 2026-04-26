@@ -5,6 +5,7 @@ These tests verify that generate_provenance produces a valid ProvDocument with
 the expected agents, activities, entities, and relationships — without requiring
 the prov library to be installed in a live stack.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -105,6 +106,7 @@ def test_entity_fqn_with_special_chars():
 
 
 # ── safe_generate_provenance fallback (B4) ────────────────────────────────────
+
 
 def test_safe_generate_provenance_succeeds_normally():
     doc = safe_generate_provenance(_minimal_report())

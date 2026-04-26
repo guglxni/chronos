@@ -55,11 +55,7 @@ class _ManifestCache:
         except OSError:
             return None
         with self._lock:
-            if (
-                self._manifest is not None
-                and self._path == path
-                and self._mtime_ns == mtime_ns
-            ):
+            if self._manifest is not None and self._path == path and self._mtime_ns == mtime_ns:
                 return self._manifest
             data = self._load(path)
             if data is None:
@@ -81,7 +77,9 @@ class _ManifestCache:
             return None
         logger.info(
             "dbt: loaded manifest with %d nodes / %d sources from %s",
-            len(data.get("nodes", {})), len(data.get("sources", {})), path,
+            len(data.get("nodes", {})),
+            len(data.get("sources", {})),
+            path,
         )
         return data
 
@@ -121,13 +119,15 @@ def manifest_stats(manifest_path: Path | str | None = None) -> dict[str, Any]:
     return {
         "available": True,
         "models": sum(
-            1 for v in data.get("nodes", {}).values()
+            1
+            for v in data.get("nodes", {}).values()
             if isinstance(v, dict) and v.get("resource_type") == "model"
         ),
         "sources": len(data.get("sources", {})),
         "exposures": len(data.get("exposures", {})),
         "tests": sum(
-            1 for v in data.get("nodes", {}).values()
+            1
+            for v in data.get("nodes", {}).values()
             if isinstance(v, dict) and v.get("resource_type") == "test"
         ),
         "path": str(_resolve_path(manifest_path)),
@@ -196,9 +196,7 @@ def _summarise_node(node_id: str, node: dict[str, Any]) -> dict[str, Any]:
         "original_file_path": str(node.get("original_file_path", "") or ""),
         "patch_path": str(node.get("patch_path", "") or ""),
         "tags": [str(t) for t in (node.get("tags") or [])],
-        "depends_on_nodes": [
-            str(n) for n in ((node.get("depends_on") or {}).get("nodes") or [])
-        ],
+        "depends_on_nodes": [str(n) for n in ((node.get("depends_on") or {}).get("nodes") or [])],
     }
 
 
@@ -295,10 +293,9 @@ def get_node_files(
             {
                 "path": cleaned,
                 "line": 0,
-                "snippet": (
-                    f"dbt {summary['resource_type']} '{summary['name']}' "
-                    f"defined here"
-                )[:200],
+                "snippet": (f"dbt {summary['resource_type']} '{summary['name']}' defined here")[
+                    :200
+                ],
                 "language": language,
                 "source": "dbt_manifest",
             }

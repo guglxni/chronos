@@ -1,4 +1,5 @@
 """Tests for the graphify_context enrichment renderer."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,9 +9,7 @@ import pytest
 from chronos.code_intel import graphify_adapter
 from chronos.enrichment import graphify_context
 
-GRAPH_PATH = (
-    Path(__file__).resolve().parent.parent / "graphify-out" / "graph.json"
-)
+GRAPH_PATH = Path(__file__).resolve().parent.parent / "graphify-out" / "graph.json"
 
 
 @pytest.fixture(autouse=True)
@@ -36,14 +35,13 @@ def test_get_graphify_context_returns_markdown_block() -> None:
 )
 def test_get_graphify_context_global_god_nodes_when_entity_unknown() -> None:
     # Unknown entity → no community/neighbours, but god nodes still render.
-    rendered = graphify_context.get_graphify_context(
-        "definitely_not_a_real_node_xyz"
-    )
+    rendered = graphify_context.get_graphify_context("definitely_not_a_real_node_xyz")
     assert "god nodes" in rendered.lower()
 
 
 def test_get_graphify_context_returns_empty_when_artifact_missing(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     missing = tmp_path / "no_graph.json"
     monkeypatch.setattr(graphify_context, "GRAPH_PATH", missing)
@@ -65,10 +63,7 @@ def test_render_block_truncates_oversized_input() -> None:
             }
             for i in range(50)
         ],
-        "god_nodes": [
-            {"id": f"g{i}", "label": "G" * 200, "degree": 99}
-            for i in range(50)
-        ],
+        "god_nodes": [{"id": f"g{i}", "label": "G" * 200, "degree": 99} for i in range(50)],
     }
     out = graphify_context._render_block(payload)
     assert len(out) <= graphify_context._MAX_CHARS
@@ -82,21 +77,36 @@ def test_adapter_cache_reloads_on_mtime_change(tmp_path: Path) -> None:
 
     cache = _GraphCache()
     path = tmp_path / "graph.json"
-    path.write_text(json.dumps({
-        "directed": False, "multigraph": False, "graph": {},
-        "nodes": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}],
-        "links": [{"source": "a", "target": "b"}],
-    }))
+    path.write_text(
+        json.dumps(
+            {
+                "directed": False,
+                "multigraph": False,
+                "graph": {},
+                "nodes": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}],
+                "links": [{"source": "a", "target": "b"}],
+            }
+        )
+    )
     g1 = cache.get(path)
     assert g1 is not None and g1.number_of_nodes() == 2
 
     # Bump mtime + content. Sleep for at least 1ns is implicit in the rewrite.
-    path.write_text(json.dumps({
-        "directed": False, "multigraph": False, "graph": {},
-        "nodes": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"},
-                  {"id": "c", "label": "C"}],
-        "links": [{"source": "a", "target": "b"}, {"source": "b", "target": "c"}],
-    }))
+    path.write_text(
+        json.dumps(
+            {
+                "directed": False,
+                "multigraph": False,
+                "graph": {},
+                "nodes": [
+                    {"id": "a", "label": "A"},
+                    {"id": "b", "label": "B"},
+                    {"id": "c", "label": "C"},
+                ],
+                "links": [{"source": "a", "target": "b"}, {"source": "b", "target": "c"}],
+            }
+        )
+    )
     g2 = cache.get(path)
     assert g2 is not None and g2.number_of_nodes() == 3
 

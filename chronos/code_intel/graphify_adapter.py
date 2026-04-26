@@ -43,9 +43,7 @@ from networkx.readwrite import json_graph
 logger = logging.getLogger("chronos.code_intel.graphify_adapter")
 
 # Default location of the graphify-out artifact relative to the repo root.
-_DEFAULT_GRAPH_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "graphify-out" / "graph.json"
-)
+_DEFAULT_GRAPH_PATH = Path(__file__).resolve().parent.parent.parent / "graphify-out" / "graph.json"
 
 # How many neighbours / community members / path nodes to return at most.
 _DEFAULT_NEIGHBOR_LIMIT = 25
@@ -71,11 +69,7 @@ class _GraphCache:
         except OSError:
             return None
         with self._lock:
-            if (
-                self._graph is not None
-                and self._path == path
-                and self._mtime_ns == mtime_ns
-            ):
+            if self._graph is not None and self._path == path and self._mtime_ns == mtime_ns:
                 return self._graph
             graph = self._load(path)
             if graph is None:
@@ -102,7 +96,9 @@ class _GraphCache:
             return None
         logger.info(
             "graphify: loaded %d nodes / %d edges from %s",
-            graph.number_of_nodes(), graph.number_of_edges(), path,
+            graph.number_of_nodes(),
+            graph.number_of_edges(),
+            path,
         )
         return graph
 
@@ -272,8 +268,7 @@ def get_community(
         return {"community_id": None, "size": 0, "members": [], "node_id": node_id}
 
     members_raw = [
-        nid for nid, data in graph.nodes(data=True)
-        if data.get("community") == community_id
+        nid for nid, data in graph.nodes(data=True) if data.get("community") == community_id
     ]
     # Rank by degree desc so the most central members come first.
     members_raw.sort(key=lambda nid: graph.degree(nid), reverse=True)
@@ -405,8 +400,7 @@ def query_graph(
     ]
     return {
         "start_nodes": [
-            {"id": s, "label": str(graph.nodes[s].get("label", s))[:200]}
-            for s in seeds
+            {"id": s, "label": str(graph.nodes[s].get("label", s))[:200]} for s in seeds
         ],
         "nodes": nodes_payload,
         "edges": edges[: max(1, min(limit * 2, 400))],

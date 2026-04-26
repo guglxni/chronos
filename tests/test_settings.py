@@ -4,6 +4,7 @@ Unit tests for chronos.config.settings.Settings model_validator.
 All tests construct Settings directly with kwargs so that the validator runs
 in-process without reading any .env file or environment variables.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -38,6 +39,7 @@ def _prod(**overrides) -> Settings:
 
 # ── development mode ──────────────────────────────────────────────────────────
 
+
 def test_dev_allows_http_urls():
     s = _dev(openmetadata_host="http://localhost:8585")
     assert s.openmetadata_host.startswith("http://")
@@ -54,6 +56,7 @@ def test_dev_optional_secrets_absent_is_fine():
 
 
 # ── production mode ───────────────────────────────────────────────────────────
+
 
 def test_prod_valid_config_passes():
     s = _prod()
@@ -108,6 +111,7 @@ def test_prod_missing_openmetadata_token_raises():
 
 # ── webhook signing in non-production ─────────────────────────────────────────
 
+
 def test_dev_webhook_signing_enabled_requires_secret():
     with pytest.raises(ValueError, match="WEBHOOK_HMAC_SECRET"):
         _dev(webhook_signature_required=True, webhook_hmac_secret=None)
@@ -123,6 +127,7 @@ def test_dev_webhook_signing_with_secret_passes():
 
 # ── langfuse feature flag ─────────────────────────────────────────────────────
 
+
 def test_langfuse_enabled_requires_keys():
     with pytest.raises(ValueError, match="LANGFUSE"):
         _dev(langfuse_enabled=True)
@@ -134,6 +139,7 @@ def test_langfuse_disabled_without_keys_passes():
 
 
 # ── production LLM key requirement (B2) ──────────────────────────────────────
+
 
 def test_prod_requires_at_least_one_llm_key():
     with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
@@ -151,6 +157,7 @@ def test_prod_groq_key_satisfies_llm_requirement():
 
 
 # ── cors_origins helper ───────────────────────────────────────────────────────
+
 
 def test_cors_origins_splits_comma_separated():
     s = _dev(cors_allowed_origins="http://localhost:3000,http://localhost:5173")

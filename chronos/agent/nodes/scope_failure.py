@@ -46,8 +46,10 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
         tc_result = tr.get("testCaseResult", {})
         tc_status = tc_result.get("testCaseStatus") or tr.get("testCaseStatus", "")
 
-        if tc_status == "Failed" and not failed_test and (
-            not test_name or tc_name == test_name or test_name in tc_name
+        if (
+            tc_status == "Failed"
+            and not failed_test
+            and (not test_name or tc_name == test_name or test_name in tc_name)
         ):
             failed_test = tr
 
@@ -72,9 +74,7 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
         parts = [p.strip("<>#") for p in entity_link.split("::")]
         # Last segment after "columns" is the column name
         try:
-            col_idx = next(
-                i for i, p in enumerate(parts) if p.lower() == "columns"
-            )
+            col_idx = next(i for i, p in enumerate(parts) if p.lower() == "columns")
             col_name = parts[col_idx + 1] if col_idx + 1 < len(parts) else ""
             if col_name:
                 affected_columns.append(col_name)
@@ -96,8 +96,7 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
             try:
                 community = await graphify_get_community(candidate, limit=20)
             except Exception as exc:
-                logger.debug("graphify_get_community(%s) failed: %s",
-                             candidate, exc)
+                logger.debug("graphify_get_community(%s) failed: %s", candidate, exc)
                 community = {}
             if community:
                 architectural_community = community

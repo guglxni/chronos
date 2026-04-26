@@ -34,6 +34,7 @@ logger = logging.getLogger("chronos.incidents")
 # ── Public store helper (backward-compat shim for callers that used to import
 # store_incident directly from this module) ────────────────────────────────────
 
+
 def store_incident(incident_report: dict | IncidentReport) -> None:
     """
     Persist a completed incident report.
@@ -45,6 +46,7 @@ def store_incident(incident_report: dict | IncidentReport) -> None:
 
 
 # ── List & filter ──────────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=IncidentListResponse)
 async def list_incidents(
@@ -64,7 +66,7 @@ async def list_incidents(
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid status '{status}'. "
-                       f"Valid values: {[e.value for e in IncidentStatus]}",
+                f"Valid values: {[e.value for e in IncidentStatus]}",
             ) from err
         incidents = [i for i in incidents if i.status == status_enum]
 
@@ -75,7 +77,7 @@ async def list_incidents(
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid root_cause '{root_cause}'. "
-                       f"Valid values: {[e.value for e in RootCauseCategory]}",
+                f"Valid values: {[e.value for e in RootCauseCategory]}",
             ) from err
         incidents = [i for i in incidents if i.root_cause_category == rc_enum]
 
@@ -93,6 +95,7 @@ async def list_incidents(
 
 # ── Single incident ────────────────────────────────────────────────────────────
 
+
 @router.get("/{incident_id}", response_model=IncidentReport)
 async def get_incident(incident_id: str) -> dict[str, Any]:
     """Retrieve a specific incident by ID."""
@@ -103,6 +106,7 @@ async def get_incident(incident_id: str) -> dict[str, Any]:
 
 
 # ── Mutations ──────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/{incident_id}/acknowledge",
@@ -186,9 +190,7 @@ async def get_provenance_jsonld(incident_id: str) -> Response:
     return Response(
         content=jsonld_bytes,
         media_type="application/ld+json",
-        headers={
-            "Content-Disposition": f'attachment; filename="provenance-{incident_id}.jsonld"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="provenance-{incident_id}.jsonld"'},
     )
 
 
@@ -201,9 +203,7 @@ async def get_provenance_turtle(incident_id: str) -> Response:
     return Response(
         content=turtle_bytes,
         media_type="text/turtle",
-        headers={
-            "Content-Disposition": f'attachment; filename="provenance-{incident_id}.ttl"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="provenance-{incident_id}.ttl"'},
     )
 
 
@@ -216,7 +216,5 @@ async def get_provenance_provn(incident_id: str) -> Response:
     return Response(
         content=provn_str,
         media_type="text/plain",
-        headers={
-            "Content-Disposition": f'attachment; filename="provenance-{incident_id}.provn"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="provenance-{incident_id}.provn"'},
     )

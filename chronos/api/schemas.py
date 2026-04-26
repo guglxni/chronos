@@ -6,6 +6,7 @@ Using explicit response models on every FastAPI route:
 - Validates outbound responses — surfaces serialisation bugs at the boundary
 - Enables client code generation from the OpenAPI spec
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel

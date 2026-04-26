@@ -4,6 +4,7 @@ Unit tests for chronos.notifications.slack.
 Cover the owner → Slack ID mapping (new feature) and the webhook-URL fallback
 behaviour.  HTTP transport is mocked via respx so no real network calls fire.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -68,6 +69,8 @@ async def test_send_notification_returns_false_without_webhook():
 
 def test_slack_user_map_file_is_optional():
     """Loader must not crash when the YAML file is absent."""
-    with patch.object(slack_module, "_SLACK_USER_MAP_PATH", slack_module.Path("/nonexistent/path.yaml")):
+    with patch.object(
+        slack_module, "_SLACK_USER_MAP_PATH", slack_module.Path("/nonexistent/path.yaml")
+    ):
         mapping = slack_module._load_slack_user_map()
         assert mapping == {}

@@ -4,6 +4,7 @@ Unit tests for chronos.core.incident_store.
 Exercises store / get / update_field / list_all / eviction — all in-process,
 no I/O.  Each test gets a clean store via the clear_store fixture.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -12,6 +13,7 @@ from chronos.core import incident_store
 from chronos.models.incident import IncidentReport, IncidentStatus, RootCauseCategory
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def clear_store():
@@ -23,6 +25,7 @@ def clear_store():
 
 def _make_report(incident_id: str = "inc-001", **kwargs) -> IncidentReport:
     from datetime import UTC, datetime
+
     defaults = dict(
         incident_id=incident_id,
         detected_at=datetime.now(tz=UTC),
@@ -39,6 +42,7 @@ def _make_report(incident_id: str = "inc-001", **kwargs) -> IncidentReport:
 
 
 # ── store + get roundtrip ─────────────────────────────────────────────────────
+
 
 def test_store_and_get_roundtrip():
     report = _make_report("inc-A")
@@ -59,6 +63,7 @@ def test_get_or_raise_raises_key_error():
 
 def test_store_accepts_dict():
     from datetime import UTC, datetime
+
     raw = {
         "incident_id": "inc-dict",
         "detected_at": datetime.now(tz=UTC).isoformat(),
@@ -75,11 +80,13 @@ def test_store_accepts_dict():
 
 def test_store_invalid_dict_raises():
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError):
         incident_store.store({"incident_id": "x"})  # missing required fields
 
 
 # ── list_all ──────────────────────────────────────────────────────────────────
+
 
 def test_list_all_empty():
     assert incident_store.list_all() == []
@@ -96,6 +103,7 @@ def test_list_all_returns_all_incidents():
 
 
 # ── update_field ──────────────────────────────────────────────────────────────
+
 
 def test_update_field_changes_status():
     incident_store.store(_make_report("inc-upd"))
@@ -121,6 +129,7 @@ def test_update_field_preserves_other_fields():
 
 
 # ── eviction at cap ───────────────────────────────────────────────────────────
+
 
 def test_eviction_removes_oldest_when_over_cap():
     cap = incident_store._MAX_STORE_SIZE

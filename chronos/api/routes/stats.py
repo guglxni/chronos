@@ -87,9 +87,7 @@ async def get_patterns() -> dict[str, Any]:
             "is_recurring": count > 1,
             "root_cause_categories": list(set(entity_categories.get(fqn, []))),
         }
-        for fqn, count in sorted(
-            entity_counts.items(), key=lambda x: x[1], reverse=True
-        )
+        for fqn, count in sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)
         if count > 1
     ]
 

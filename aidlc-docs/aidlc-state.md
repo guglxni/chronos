@@ -9,7 +9,7 @@
 - **Deadline**: April 26, 2026
 
 ## Current Phase
-**CONSTRUCTION** — Code Generation Complete (2026-04-21)
+**CONSTRUCTION** — Post-remediation verification complete (2026-04-21)
 
 ## Workflow Progress
 
@@ -51,7 +51,21 @@
   - [x] Code Generation — W3C PROV-O generator (JSON-LD/Turtle/PROV-N), OpenLLMetry init, A2A agent card JSON
   - [x] DeepEval / RAGAs tests — GEval + Faithfulness (F17), Context Recall/Precision (F18)
   - [x] GitHub Actions CI — eval.yml with unit tests + LLM eval stages
-- [ ] Build and Test — Pending docker-compose up + integration verification
+- [x] Security and quality remediation (internal-docs/FIX_PLAN.md)
+  - [x] Secret handling hardening and startup validation
+  - [x] Webhook signature auth + rate limiting + CORS hardening
+  - [x] Exception narrowing and cancellation-safe async handling
+  - [x] Type-safe incident access and route-level cleanup
+  - [x] Lazy graph compilation to avoid import-time side effects
+  - [x] Verification complete — pytest (14 passed, 3 skipped), mypy clean, targeted ruff clean
+- [x] Unit 8: Local Code Intelligence Layer (2026-04-26)
+  - [x] Functional Design — aidlc-docs/code_intel_design.md
+  - [x] Code Generation — chronos/code_intel/{local_git,code_search,sql_parser,graphify_adapter,dbt_manifest}.py
+  - [x] MCP wrappers updated — gitnexus_* now local-first; graphify_*, dbt_* added
+  - [x] Pipeline integration — Step 1 community context, Step 4 dbt+graphify enrichment, Step 5 code blast paths, Step 7 live graphify rendering
+  - [x] State schema — added 5 new total=False fields (no migration needed)
+  - [x] Tests — 38 new (tests/test_code_intel.py + test_nodes_code_intel.py + test_graphify_context.py); 0 regressions
+- [ ] Build and Test (full stack integration) — Pending docker-compose up + integration verification
 
 ### OPERATIONS PHASE
 - [ ] Docker Compose orchestration — docker-compose.yml ready, pending `docker compose up`
@@ -77,7 +91,7 @@
 ## Technology Stack
 - **Backend**: Python 3.11+, FastAPI, LangGraph, LiteLLM
 - **Frontend**: React + TypeScript, React Flow, Tailwind CSS
-- **Data**: Graphiti (FalkorDB), OpenMetadata MCP, GitNexus MCP
+- **Data**: Graphiti (FalkorDB), OpenMetadata MCP, local code_intel layer (subprocess git, ripgrep, sqlglot, dbt manifest, graphify NetworkX adapter)
 - **Observability**: Langfuse (self-hosted), OpenLLMetry (Traceloop), OTel GenAI SemConv
 - **Compliance**: W3C PROV-O (prov library), A2A Agent Card
 - **Quality**: DeepEval (G-Eval, Faithfulness), RAGAs (retrieval metrics)

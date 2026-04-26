@@ -5,6 +5,7 @@ When /investigate is triggered but nobody ever connects to /stream, the queue
 must be evicted after _SSE_ORPHAN_TTL seconds to avoid an unbounded memory leak.
 Tests patch the TTL constant so they complete in milliseconds.
 """
+
 from __future__ import annotations
 
 import asyncio
