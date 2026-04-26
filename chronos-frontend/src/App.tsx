@@ -66,6 +66,13 @@ function DemoNav() {
           Architecture
         </a>
         <a
+          href="#for-agents"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: '#707072', textDecoration: 'none' }}
+        >
+          For Agents
+        </a>
+        <a
           href="https://github.com"
           target="_blank"
           rel="noopener noreferrer"

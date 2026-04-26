@@ -6,6 +6,7 @@ import RCACard from '../components/RCACard';
 import HeroSection from '../components/HeroSection';
 import HowItWorks from '../components/HowItWorks';
 import ArchitectureSection from '../components/ArchitectureSection';
+import AgentSection from '../components/AgentSection';
 import type { IncidentReport } from '../types';
 
 const API_BASE = 'https://chronos-api-0e8635fe890d.herokuapp.com';
@@ -528,6 +529,7 @@ export default function Demo() {
       <LiveDemoSection />
       <ArchitectureSection />
       <APIReferenceSection />
+      <AgentSection />
       <Footer />
     </div>
   );

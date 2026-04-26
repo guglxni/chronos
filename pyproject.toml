@@ -55,6 +55,9 @@ dev = [
     "graphifyy>=0.5.0",
 ]
 
+[project.scripts]
+chronos-mcp = "chronos.mcp.server:_cli_main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["chronos"]
 

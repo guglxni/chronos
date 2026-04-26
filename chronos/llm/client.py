@@ -47,9 +47,9 @@ def _sanitize_evidence_field(value: Any) -> Any:
       safe marker that keeps the text readable but defuses the directive.
     """
     if isinstance(value, str):
-        clipped = value[:_MAX_FIELD_CHARS]
-        # Break triple-backtick fence escapes.
-        clipped = clipped.replace("```", "`​``")
+        # Defang backticks BEFORE clipping so replacement can't expand past the limit.
+        defanged = value.replace("```", "`​``")
+        clipped = defanged[:_MAX_FIELD_CHARS]
         # Neutralise common prompt-injection directives.  Prefix the line with a
         # visible marker so auditors can spot attempted injections in Langfuse traces
         # without silently discarding the content.

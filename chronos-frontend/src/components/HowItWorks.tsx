@@ -55,7 +55,7 @@ export default function HowItWorks() {
               <div className="md:col-span-2">
                 <span
                   className="font-heading text-8xl md:text-9xl leading-none select-none"
-                  style={{ color: idx === 0 ? '#0057FF' : '#E8E8E8' }}
+                  style={{ color: idx === 0 ? '#0057FF' : '#111111' }}
                 >
                   {step.number}
                 </span>
