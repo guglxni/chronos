@@ -14,44 +14,33 @@ type Severity = (typeof SEVERITIES)[number];
 
 function buildWebhookPayload(tableName: string, testName: string, severity: Severity) {
   const fqn = `prod.orders.${tableName}`;
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
   return {
     eventType: 'TestCaseFailed',
-    timestamp: now,
+    timestamp: nowMs,
     entityType: 'table',
-    entityFQN: fqn,
+    entityFullyQualifiedName: fqn,
     userName: 'chronos-demo',
-    changeDescription: {
-      fieldsUpdated: [
-        {
-          name: 'testCaseResult',
-          newValue: JSON.stringify({
-            testCaseFQN: `${fqn}.${testName}`,
-            result: 'FAILED',
-            testResultValue: [{ name: 'rowCount', value: '0' }],
-            timestamp: now,
-            testCaseStatus: 'Failed',
-            incidentId: null,
-          }),
-        },
-      ],
-    },
     entity: {
       id: `demo-table-${tableName}`,
       type: 'table',
       name: tableName,
       fullyQualifiedName: fqn,
       description: `Demo table: ${tableName}`,
-      href: `${API_BASE}/api/v1/tables/${tableName}`,
+      testCaseResult: {
+        testCaseFQN: `${fqn}.${testName}`,
+        result: `Test ${testName} failed: row count dropped to 0. Expected > 1000.`,
+        testCaseStatus: 'Failed',
+        severity: severity,
+        timestamp: nowMs,
+        testResultValue: [{ name: 'rowCount', value: '0' }],
+      },
     },
-    testCaseResult: {
-      testCaseFQN: `${fqn}.${testName}`,
-      result: 'FAILED',
+    testResult: {
       testCaseStatus: 'Failed',
-      severity: severity,
-      timestamp: now,
+      timestamp: nowMs,
+      result: `Test ${testName} failed: row count dropped to 0. Expected > 1000.`,
       testResultValue: [{ name: 'rowCount', value: '0' }],
-      failureMessage: `Test ${testName} failed: row count dropped to 0. Expected > 1000.`,
     },
   };
 }
