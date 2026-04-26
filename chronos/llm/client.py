@@ -96,9 +96,9 @@ async def _call_litellm(
     messages: list[dict[str, str]],
     temperature: float = 0.1,
     max_tokens: int = 2048,
-) -> str:
+) -> tuple[str, int]:
     """
-    POST to LiteLLM proxy /chat/completions and return the assistant message content.
+    POST to LiteLLM proxy /chat/completions and return (content, total_tokens).
 
     Raises specific exceptions (httpx.HTTPStatusError, httpx.RequestError,
     asyncio.TimeoutError, ValueError) so callers can handle each case distinctly.
@@ -121,7 +121,8 @@ async def _call_litellm(
         raise ValueError(f"LiteLLM returned no choices: {data}")
 
     content: str = choices[0].get("message", {}).get("content", "")
-    return content
+    total_tokens: int = data.get("usage", {}).get("total_tokens", 0)
+    return content, total_tokens
 
 
 def _parse_json_response(raw: str) -> dict[str, Any]:
@@ -199,13 +200,15 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
         {"role": "user", "content": user_message},
     ]
 
+    total_tokens = 0
     try:
-        raw = await _call_litellm(
+        raw, tokens = await _call_litellm(
             model=settings.llm_model,
             messages=messages,
             temperature=0.1,
             max_tokens=2048,
         )
+        total_tokens += tokens
         result = _parse_json_response(raw)
         required = ("probable_root_cause", "root_cause_category", "confidence")
         if not result:
@@ -220,6 +223,7 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
             result.get("root_cause_category"),
             result.get("confidence"),
         )
+        result["total_tokens"] = total_tokens
         return result
     except httpx.HTTPStatusError as exc:
         logger.error(
@@ -249,7 +253,7 @@ async def extract_structured(raw_text: str, schema_hint: str) -> dict[str, Any]:
     messages = [{"role": "user", "content": prompt}]
 
     try:
-        raw = await _call_litellm(
+        raw, _tokens = await _call_litellm(
             model=settings.llm_model,
             messages=messages,
             temperature=0.0,

@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Activity, LayoutDashboard, Settings as SettingsIcon, Zap, Sparkles } from 'lucide-react';
@@ -6,6 +7,33 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import Tooltip from './components/Tooltip';
 import { api } from './lib/api';
+
+class ChunkErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '4rem', textAlign: 'center', fontFamily: 'monospace' }}>
+          <p style={{ color: '#ef4444', marginBottom: '1rem' }}>New version deployed.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}
+          >
+            Reload to continue →
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Route-level code splitting
 const Demo = lazy(() => import('./pages/Demo'));
@@ -204,28 +232,32 @@ function AppRoutes() {
         <div className="min-h-screen bg-gray-900 text-gray-100">
           <DashboardNav />
           <main className="pt-14">
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingSpinner size="lg" />}>
-                <Routes>
-                  <Route path="/app" element={<Dashboard />} />
-                  <Route path="/app/incidents/:id" element={<IncidentDetail />} />
-                  <Route path="/app/settings" element={<Settings />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
+            <ChunkErrorBoundary>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <Routes>
+                    <Route path="/app" element={<Dashboard />} />
+                    <Route path="/app/incidents/:id" element={<IncidentDetail />} />
+                    <Route path="/app/settings" element={<Settings />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </ChunkErrorBoundary>
           </main>
         </div>
       ) : (
         <div>
           <DemoNav />
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingSpinner size="lg" />}>
-              <Routes>
-                <Route path="/" element={<Demo />} />
-                <Route path="/report/:incidentId" element={<IncidentReport />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
+          <ChunkErrorBoundary>
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner size="lg" />}>
+                <Routes>
+                  <Route path="/" element={<Demo />} />
+                  <Route path="/report/:incidentId" element={<IncidentReport />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </ChunkErrorBoundary>
         </div>
       )}
     </>

@@ -256,8 +256,8 @@ export default function RCACard({ report }: RCACardProps) {
         >
           {[
             { label: 'Model', value: report.llm_model_used },
-            { label: 'MCP calls', value: String(report.total_mcp_calls) },
-            { label: 'Tokens', value: report.total_llm_tokens?.toLocaleString() },
+            { label: 'Analysis Steps', value: report.total_mcp_calls ? String(report.total_mcp_calls) : undefined },
+            { label: 'LLM Tokens', value: report.total_llm_tokens ? report.total_llm_tokens.toLocaleString() : undefined },
           ].map(({ label, value }) =>
             value ? (
               <div key={label} className="flex items-center gap-1.5">

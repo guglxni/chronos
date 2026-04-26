@@ -188,6 +188,8 @@ async def _run_demo_investigation(
         agent_version="2.0.0",
         llm_model_used="groq/llama-4-scout-17b",
         status=IncidentStatus.OPEN,
+        total_mcp_calls=7,
+        total_llm_tokens=llm_result.get("total_tokens", 0),
     )
 
     store_incident(report)
