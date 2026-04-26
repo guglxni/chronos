@@ -1,3 +1,6 @@
+# Superseded by ci.yml — kept as a redirect so any existing branch-protection
+# rules that reference "CHRONOS Lint and Types" still resolve.
+# Delete this file once branch protection rules are updated to "CHRONOS CI".
 name: CHRONOS Lint and Types
 
 on:
@@ -6,87 +9,14 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  lint:
-    name: Ruff and Mypy
+  redirect:
+    name: "⚠ Moved to ci.yml — see CHRONOS CI workflow"
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install CHRONOS dev dependencies
-        run: pip install -e ".[dev]"
-
-      - name: Ruff
-        run: ruff check chronos tests
-
-      - name: Mypy
-        run: mypy --config-file mypy.ini chronos
-
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install CHRONOS dev dependencies
-        run: pip install -e ".[dev]"
-
-      - name: Run tests
-        run: pytest tests/ --ignore=tests/evals -v
-
-  frontend-test:
-    name: Frontend Tests (Vitest)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: chronos-frontend/package.json
-
-      - name: Install frontend dependencies
-        working-directory: chronos-frontend
-        run: npm install
-
-      - name: Run Vitest
-        working-directory: chronos-frontend
-        run: npm test
-
-  dependency-audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install runtime dependencies and pip-audit
-        run: |
-          pip install -e .
-          pip install pip-audit
-
-      - name: Run pip-audit
-        run: pip-audit
+      - run: |
+          echo "This workflow is superseded by .github/workflows/ci.yml"
+          echo "Branch protection should reference 'CHRONOS CI' jobs instead."

@@ -1,0 +1,15 @@
+# Known false positives — audited and confirmed safe.
+# All of these are environment variable *references* (os.environ/VAR or ${VAR}),
+# not actual secrets.  Do not add real secrets here — rotate them instead.
+
+# litellm_config.yaml — uses LiteLLM's "os.environ/..." reference syntax
+362f2ca8636c6167b20713f5bcd632d2b20699d7
+07db03b4eef371b55ee656a334d69857b58a09da
+3d80bd01f8848478265190f8650bc10acab03338
+
+# docker-compose.yml — ${VAR:?} shell substitution, never a real value
+b4823bbcec6faae373ca6f3834c4fec73560262c
+639b8d12231c2d5f8dc4ce2f6c3a794df6ae8f77
+
+# spec.md — LiteLLM config examples in documentation
+59687f21c405b319334c1b886426c58f357c37ee

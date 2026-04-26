@@ -1,0 +1,89 @@
+name: CHRONOS Deploy
+
+# Only deploy when CI passes on main — uses workflow_run so CD never races CI.
+on:
+  workflow_run:
+    workflows: ["CHRONOS CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Backend → Heroku ─────────────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend (Heroku)
+    runs-on: ubuntu-latest
+    # Only deploy when CI succeeded — never deploy a broken build.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: production
+      url: https://chronos-api-0e8635fe890d.herokuapp.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Heroku git push needs full history
+
+      - name: Deploy to Heroku (git push)
+        # heroku.yml in repo root instructs Heroku to build the Docker image.
+        # HEROKU_API_KEY must be set as a GitHub Actions secret.
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/chronos-api.git
+          git push heroku HEAD:main
+
+      - name: Smoke-test health endpoint
+        run: |
+          for i in 1 2 3 4 5; do
+            status=$(curl -sf https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))")
+            if [ "$status" = "healthy" ]; then
+              echo "Health check passed: $status"
+              exit 0
+            fi
+            echo "Attempt $i: got $status — waiting 15s"
+            sleep 15
+          done
+          echo "Health check failed after 5 attempts"
+          exit 1
+
+  # ── Frontend → Vercel ────────────────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend (Vercel)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: production
+      url: https://chronos-frontend-eight.vercel.app
+    defaults:
+      run:
+        working-directory: chronos-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: chronos-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          VITE_API_URL: https://chronos-api-0e8635fe890d.herokuapp.com
+        run: npm run build
+
+      - name: Deploy to Vercel (production)
+        # VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID must be GitHub secrets.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel@latest
+          vercel --prod --yes --token "$VERCEL_TOKEN"

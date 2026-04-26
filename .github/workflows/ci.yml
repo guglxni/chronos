@@ -1,0 +1,135 @@
+name: CHRONOS CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Minimal token permissions — never request more than needed (OWASP ASVS V1.1.2)
+permissions:
+  contents: read
+
+jobs:
+  # ── Secret scanning ──────────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so gitleaks can diff all commits
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Exits 1 (fails the job) if any unredacted secret is detected.
+        # .gitleaksignore (if present) whitelists false positives.
+
+  # ── Python lint & type-check ─────────────────────────────────────────────────
+  lint:
+    name: Ruff + Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff (lint + format check)
+        run: |
+          ruff check chronos tests
+          ruff format --check chronos tests
+
+      - name: Mypy
+        run: mypy --config-file mypy.ini chronos
+
+  # ── Python unit tests ────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest tests/ --ignore=tests/evals -v --tb=short
+
+  # ── Frontend tests ───────────────────────────────────────────────────────────
+  frontend-test:
+    name: Frontend (Vitest + tsc)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chronos-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: chronos-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Vitest
+        run: npm test
+
+      - name: npm audit (no high/critical)
+        run: npm audit --audit-level=high
+
+  # ── Python dependency vulnerability scan ─────────────────────────────────────
+  dependency-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install package + pip-audit
+        run: |
+          pip install -e .
+          pip install pip-audit
+
+      - name: pip-audit (fail on known vulnerabilities)
+        run: pip-audit --strict
+
+  # ── detect-secrets baseline check ────────────────────────────────────────────
+  detect-secrets:
+    name: detect-secrets baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install detect-secrets
+        run: pip install detect-secrets
+
+      - name: Verify no new secrets vs baseline
+        # Fails if scan finds secrets not already audited in .secrets.baseline
+        run: detect-secrets scan --baseline .secrets.baseline
