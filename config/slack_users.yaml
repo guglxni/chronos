@@ -1,0 +1,21 @@
+# Slack user / group mapping for CHRONOS incident notifications.
+#
+# When an OpenMetadata table owner is referenced in a Slack notification, CHRONOS
+# will look up the owner name in this file and resolve to the mapped value:
+#   - A "U..." value is rendered as <@U...> (direct user mention).
+#   - A "S..." value is rendered as <!subteam^S...|handle> (usergroup mention).
+#   - Anything else is passed through verbatim (useful for display-only names).
+#
+# Unmapped owners fall back to the literal "@<name>" string so notifications
+# remain readable even if the YAML is out of date.
+#
+# Reload: this file is read at startup; restart the CHRONOS server after edits.
+
+# Teams (OpenMetadata team owners)
+data-engineering-team: S0DATAENG01
+data-platform-team: S0DATAPLAT1
+analytics-engineering: S0ANALYTICS1
+
+# Individual users (OpenMetadata user owners) — replace IDs with real Slack member IDs
+alice: U0ALICE
+bob: U0BOB

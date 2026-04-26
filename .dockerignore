@@ -1,0 +1,48 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Test and dev tooling
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.cover
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+.secrets.baseline
+
+# Documentation and planning
+*.md
+docs/
+internal-docs/
+aidlc-docs/
+
+# Frontend (built separately)
+chronos-frontend/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
