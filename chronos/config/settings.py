@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     openmetadata_host: str = "http://localhost:8585"
     falkordb_host: str = "localhost"
     falkordb_port: int = 6379
+    falkordb_password: SecretStr | None = None
     # Upstream getzep/graphiti mcp_server serves SSE at /sse, not /mcp/.
     graphiti_mcp_url: str = "http://localhost:8200/sse"
     litellm_proxy_url: str = "http://localhost:4000"

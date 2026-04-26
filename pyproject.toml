@@ -16,6 +16,8 @@ dependencies = [
     "langchain-core>=0.2.0",
     "langchain-community>=0.2.0",
     "litellm>=1.40.0",
+    "lxml>=5.2.0",
+    "rdflib>=7.0.0",
     "httpx>=0.27.0",
     "graphiti-core>=0.3.0",
     "langfuse>=2.38.0",
@@ -25,12 +27,19 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.25.0",
     "prov>=2.0.0",
     "python-dotenv>=1.0.0",
-    "aioredis>=2.0.0",
+    "redis>=5.0.0",
     "sse-starlette>=2.1.0",
+    "slowapi>=0.1.9",
     "slack-sdk>=3.29.0",
     "mcp>=1.0.0",
-    "pytest>=8.2.0",
-    "pytest-asyncio>=0.23.0",
+    # ─── Code intelligence layer (chronos.code_intel) ──────────────────────
+    # networkx: graphify_adapter loads graph.json into an in-process graph
+    #           for live community / shortest_path queries.
+    # sqlglot:  optional but strongly preferred for AST-aware SQL entity
+    #           extraction; falls back to a regex parser if unavailable.
+    "networkx>=3.0",
+    "sqlglot>=23.0",
+    "falkordb>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +50,9 @@ eval = [
 dev = [
     "ruff>=0.4.0",
     "mypy>=1.10.0",
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "graphifyy>=0.5.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -48,3 +60,15 @@ packages = ["chronos"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "ASYNC", "S"]
+ignore = ["E501", "S101"]  # S101: assert allowed in tests and guards
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811", "S101", "S106"]
+"scripts/*" = ["S101", "S603", "S607"]
