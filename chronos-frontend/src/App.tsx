@@ -11,6 +11,7 @@ import { api } from './lib/api';
 const Demo = lazy(() => import('./pages/Demo'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const IncidentDetail = lazy(() => import('./pages/IncidentDetail'));
+const IncidentReport = lazy(() => import('./pages/IncidentReport'));
 const Settings = lazy(() => import('./pages/Settings'));
 
 // Nav for the demo / landing page
@@ -214,6 +215,7 @@ function AppRoutes() {
             <Suspense fallback={<LoadingSpinner size="lg" />}>
               <Routes>
                 <Route path="/" element={<Demo />} />
+                <Route path="/report/:incidentId" element={<IncidentReport />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

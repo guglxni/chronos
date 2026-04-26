@@ -16,11 +16,11 @@ const PILLARS = [
     icon: '◈',
   },
   {
-    name: 'LiteLLM / Groq',
-    role: 'LLM synthesis layer',
+    name: 'LiteLLM',
+    role: 'LLM-agnostic synthesis',
     description:
-      'The agentic investigation graph feeds all gathered evidence to an LLM via LiteLLM — a unified proxy that works with Groq, OpenAI, Anthropic, and others. The model synthesizes a structured RCA with confidence scoring.',
-    tech: ['LiteLLM', 'Groq Inference', 'LangGraph'],
+      'CHRONOS routes all evidence through LiteLLM — a unified proxy that works with Groq, OpenAI, Anthropic, Mistral, and any OpenAI-compatible endpoint. Swap providers without changing a line of agent code.',
+    tech: ['LiteLLM', 'Groq · OpenAI · Anthropic', 'LangGraph'],
     icon: '◎',
   },
 ];

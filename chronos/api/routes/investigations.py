@@ -43,6 +43,13 @@ _sse_queues: dict[str, asyncio.Queue] = {}
 _sse_tokens: dict[str, str] = {}
 _active_tasks: set[asyncio.Task] = set()
 
+
+def register_sse_queue(incident_id: str, stream_token: str, queue: asyncio.Queue) -> None:
+    """Register a pre-created SSE queue — used by demo.py and external orchestrators."""
+    _sse_queues[incident_id] = queue
+    _sse_tokens[incident_id] = stream_token
+
+
 _SSE_HEARTBEAT_INTERVAL = 25.0  # seconds
 _SSE_QUEUE_MAXSIZE = 100
 # How long to keep an unconsumed queue after the investigation completes.

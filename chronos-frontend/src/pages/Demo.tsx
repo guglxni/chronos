@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useSSE } from '../hooks/useSSE';
 import DemoTerminal from '../components/DemoTerminal';
 import RCACard from '../components/RCACard';
@@ -9,164 +10,87 @@ import type { IncidentReport } from '../types';
 
 const API_BASE = 'https://chronos-api-0e8635fe890d.herokuapp.com';
 
-const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
-type Severity = (typeof SEVERITIES)[number];
+const DEMO_SCENARIOS = [
+  {
+    id: 'row_count_failure',
+    label: 'Row Count Failure',
+    table: 'prod.orders.orders_daily',
+    test: 'row_count_check',
+    severity: 'CRITICAL',
+    desc: 'ETL job failed — orders_daily has 0 rows',
+  },
+  {
+    id: 'null_values',
+    label: 'Null Values Detected',
+    table: 'prod.customers.customer_profiles',
+    test: 'not_null_customer_id',
+    severity: 'HIGH',
+    desc: '5.3% of customer records have NULL IDs',
+  },
+  {
+    id: 'schema_drift',
+    label: 'Schema Drift',
+    table: 'prod.payments.payments_raw',
+    test: 'schema_check',
+    severity: 'HIGH',
+    desc: 'Stripe API v2.4 added a required field',
+  },
+] as const;
 
-function buildWebhookPayload(tableName: string, testName: string, severity: Severity) {
-  const fqn = `prod.orders.${tableName}`;
-  const nowMs = Date.now();
-  return {
-    eventType: 'TestCaseFailed',
-    timestamp: nowMs,
-    entityType: 'table',
-    entityFullyQualifiedName: fqn,
-    userName: 'chronos-demo',
-    entity: {
-      id: `demo-table-${tableName}`,
-      type: 'table',
-      name: tableName,
-      fullyQualifiedName: fqn,
-      description: `Demo table: ${tableName}`,
-      testCaseResult: {
-        testCaseFQN: `${fqn}.${testName}`,
-        result: `Test ${testName} failed: row count dropped to 0. Expected > 1000.`,
-        testCaseStatus: 'Failed',
-        severity: severity,
-        timestamp: nowMs,
-        testResultValue: [{ name: 'rowCount', value: '0' }],
-      },
-    },
-    testResult: {
-      testCaseStatus: 'Failed',
-      timestamp: nowMs,
-      result: `Test ${testName} failed: row count dropped to 0. Expected > 1000.`,
-      testResultValue: [{ name: 'rowCount', value: '0' }],
-    },
-  };
-}
+type DemoScenario = (typeof DEMO_SCENARIOS)[number];
 
-async function pollForIncident(
-  tableName: string,
-  maxAttempts = 15
-): Promise<string | null> {
-  const fqn = `prod.orders.${tableName}`;
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/incidents?limit=20`);
-      if (!res.ok) continue;
-      const body = (await res.json()) as {
-        incidents?: IncidentReport[];
-        items?: IncidentReport[];
-      };
-      const list = body.incidents ?? body.items ?? [];
-      const match = list.find(
-        (inc) =>
-          inc.affected_entity_fqn === fqn ||
-          inc.affected_entity_fqn?.includes(tableName)
-      );
-      if (match) return match.incident_id;
-    } catch {
-      // network error — keep polling
-    }
-  }
-  return null;
-}
-
-async function fetchIncidentReport(incidentId: string): Promise<IncidentReport | null> {
-  for (let i = 0; i < 10; i++) {
-    await new Promise((r) => setTimeout(r, 3000));
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/incidents/${incidentId}`);
-      if (!res.ok) continue;
-      const report = (await res.json()) as IncidentReport;
-      if (report.probable_root_cause) return report;
-    } catch {
-      // keep waiting
-    }
-  }
-  return null;
-}
+const SEVERITY_COLORS: Record<string, string> = {
+  CRITICAL: '#ef4444',
+  HIGH: '#f59e0b',
+  MEDIUM: '#3b82f6',
+  LOW: '#22c55e',
+};
 
 function LiveDemoSection() {
-  const [tableName, setTableName] = useState('orders_daily');
-  const [testName, setTestName] = useState('row_count_check');
-  const [severity, setSeverity] = useState<Severity>('HIGH');
+  const [selectedScenario, setSelectedScenario] = useState<DemoScenario>(DEMO_SCENARIOS[0]);
   const [isRunning, setIsRunning] = useState(false);
   const [incidentId, setIncidentId] = useState<string | null>(null);
+  const [streamToken, setStreamToken] = useState<string | null>(null);
   const [rcaReport, setRcaReport] = useState<IncidentReport | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'posting' | 'polling' | 'streaming' | 'done' | 'error'>('idle');
-  const abortRef = useRef<AbortController | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'posting' | 'streaming' | 'done' | 'error'>('idle');
 
-  const { events, isConnected, error: sseError } = useSSE(incidentId);
+  const { events, isConnected, error: sseError } = useSSE(incidentId, streamToken ?? undefined);
 
   const runInvestigation = useCallback(async () => {
-    if (isRunning) return;
-
+    if (isRunning || !selectedScenario) return;
     setIsRunning(true);
     setRcaReport(null);
     setIncidentId(null);
+    setStreamToken(null);
     setStatusMsg(null);
     setPhase('posting');
 
-    abortRef.current = new AbortController();
-
     try {
-      // Step 1: POST webhook
-      setStatusMsg('Sending failure event to CHRONOS...');
-      const payload = buildWebhookPayload(tableName, testName, severity);
-
-      const res = await fetch(`${API_BASE}/api/v1/webhooks/openmetadata`, {
+      setStatusMsg('Launching investigation…');
+      const res = await fetch(`${API_BASE}/api/v1/demo/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ scenario: selectedScenario.id }),
       });
-
       if (!res.ok) {
         const errBody = await res.text();
-        throw new Error(`Webhook failed (${res.status}): ${errBody}`);
+        throw new Error(`Demo API failed (${res.status}): ${errBody}`);
       }
-
-      // Try to get incident_id directly from response
-      let id: string | null = null;
-      try {
-        const body = (await res.json()) as {
-          incident_id?: string;
-          id?: string;
-          investigation_id?: string;
-        };
-        id = body.incident_id ?? body.id ?? body.investigation_id ?? null;
-      } catch {
-        // response not JSON
-      }
-
-      // Step 2: Poll for incident if not in response
-      if (!id) {
-        setPhase('polling');
-        setStatusMsg('Event received. Polling for incident ID...');
-        id = await pollForIncident(tableName);
-      }
-
-      if (!id) {
-        throw new Error('Investigation started but could not locate incident ID. Check the API logs.');
-      }
-
-      // Step 3: Connect SSE stream
+      const body = await res.json() as { incident_id: string; stream_token: string };
+      setIncidentId(body.incident_id);
+      setStreamToken(body.stream_token);
       setPhase('streaming');
       setStatusMsg(null);
-      setIncidentId(id);
 
-      // Step 4: Wait for RCA report
-      setStatusMsg('Streaming investigation... Fetching RCA report when complete.');
-      const report = await fetchIncidentReport(id);
-      if (report) {
-        setRcaReport(report);
-        setPhase('done');
-        setStatusMsg(null);
-      } else {
-        setPhase('done');
-        setStatusMsg('Investigation complete. RCA report not yet available — try refreshing.');
+      // Wait for SSE complete then fetch final report
+      await new Promise<void>((resolve) => setTimeout(resolve, 6000));
+      setPhase('done');
+
+      const reportRes = await fetch(`${API_BASE}/api/v1/incidents/${body.incident_id}`);
+      if (reportRes.ok) {
+        const reportData = await reportRes.json() as IncidentReport;
+        if (reportData.probable_root_cause) setRcaReport(reportData);
       }
     } catch (err) {
       setPhase('error');
@@ -174,28 +98,15 @@ function LiveDemoSection() {
     } finally {
       setIsRunning(false);
     }
-  }, [tableName, testName, severity, isRunning]);
+  }, [selectedScenario, isRunning]);
 
   const reset = () => {
-    abortRef.current?.abort();
     setIncidentId(null);
+    setStreamToken(null);
     setRcaReport(null);
     setStatusMsg(null);
     setPhase('idle');
     setIsRunning(false);
-  };
-
-  const inputStyle: React.CSSProperties = {
-    backgroundColor: '#F5F5F5',
-    border: '1.5px solid #E8E8E8',
-    borderRadius: '30px',
-    padding: '12px 20px',
-    fontFamily: '"CM Geom", system-ui, sans-serif',
-    fontSize: '14px',
-    color: '#111111',
-    width: '100%',
-    outline: 'none',
-    transition: 'border-color 0.15s',
   };
 
   return (
@@ -225,11 +136,11 @@ function LiveDemoSection() {
           className="font-body text-base mb-16 max-w-xl"
           style={{ color: '#707072' }}
         >
-          Inject a failure event and watch the agentic investigation pipeline run live.
+          Pick a pre-seeded failure scenario and watch the agentic investigation pipeline run live.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* LEFT: Form */}
+          {/* LEFT: Scenario picker */}
           <div
             className="p-8"
             style={{ backgroundColor: '#FFFFFF' }}
@@ -241,124 +152,94 @@ function LiveDemoSection() {
               Try It Live
             </h3>
             <p className="font-body text-sm mb-8" style={{ color: '#707072' }}>
-              Simulate a data quality failure and watch CHRONOS investigate in real time.
+              Select a failure scenario and watch CHRONOS investigate in real time.
             </p>
 
-            <div className="space-y-5">
-              {/* Table Name */}
-              <div>
-                <label
-                  className="font-body text-xs tracking-widest uppercase block mb-2"
-                  style={{ color: '#707072', letterSpacing: '0.12em' }}
-                >
-                  Table Name
-                </label>
-                <input
-                  type="text"
-                  value={tableName}
-                  onChange={(e) => setTableName(e.target.value)}
-                  style={inputStyle}
-                  placeholder="orders_daily"
-                  disabled={isRunning}
-                />
-              </div>
-
-              {/* Test Name */}
-              <div>
-                <label
-                  className="font-body text-xs tracking-widest uppercase block mb-2"
-                  style={{ color: '#707072', letterSpacing: '0.12em' }}
-                >
-                  Test Name
-                </label>
-                <input
-                  type="text"
-                  value={testName}
-                  onChange={(e) => setTestName(e.target.value)}
-                  style={inputStyle}
-                  placeholder="row_count_check"
-                  disabled={isRunning}
-                />
-              </div>
-
-              {/* Severity */}
-              <div>
-                <label
-                  className="font-body text-xs tracking-widest uppercase block mb-2"
-                  style={{ color: '#707072', letterSpacing: '0.12em' }}
-                >
-                  Severity
-                </label>
-                <select
-                  value={severity}
-                  onChange={(e) => setSeverity(e.target.value as Severity)}
-                  style={{
-                    ...inputStyle,
-                    cursor: 'pointer',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23707072' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 16px center',
-                    paddingRight: '40px',
-                  }}
-                  disabled={isRunning}
-                >
-                  {SEVERITIES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Run button */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={runInvestigation}
-                  disabled={isRunning || !tableName || !testName}
-                  className="chronos-btn-primary flex-1 py-4"
-                  style={{
-                    opacity: isRunning || !tableName || !testName ? 0.6 : 1,
-                    cursor: isRunning || !tableName || !testName ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {isRunning ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span
-                        className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
-                        style={{ display: 'inline-block' }}
-                      />
-                      Investigating...
-                    </span>
-                  ) : (
-                    'Run Investigation →'
-                  )}
-                </button>
-                {phase !== 'idle' && (
+            {/* Scenario cards */}
+            <div className="space-y-3 mb-8">
+              {DEMO_SCENARIOS.map((scenario) => {
+                const isSelected = selectedScenario.id === scenario.id;
+                return (
                   <button
-                    onClick={reset}
-                    className="chronos-btn-outline-dark px-5 py-4"
+                    key={scenario.id}
+                    onClick={() => !isRunning && setSelectedScenario(scenario)}
+                    disabled={isRunning}
+                    className="w-full text-left p-4 transition-all"
+                    style={{
+                      backgroundColor: '#F5F5F5',
+                      border: `2px solid ${isSelected ? '#0057FF' : 'transparent'}`,
+                      cursor: isRunning ? 'not-allowed' : 'pointer',
+                      opacity: isRunning && !isSelected ? 0.5 : 1,
+                    }}
                   >
-                    Reset
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <span className="font-body text-sm font-medium" style={{ color: '#111111' }}>
+                        {scenario.label}
+                      </span>
+                      <span
+                        className="font-body text-xs px-2 py-0.5 rounded flex-shrink-0"
+                        style={{
+                          backgroundColor: (SEVERITY_COLORS[scenario.severity] ?? '#707072') + '20',
+                          color: SEVERITY_COLORS[scenario.severity] ?? '#707072',
+                        }}
+                      >
+                        {scenario.severity}
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs mb-1" style={{ color: '#707072' }}>{scenario.table}</p>
+                    <p className="font-body text-xs" style={{ color: '#707072' }}>{scenario.desc}</p>
                   </button>
-                )}
-              </div>
+                );
+              })}
+            </div>
 
-              {/* Status message */}
-              {statusMsg && (
-                <p
-                  className="font-body text-xs animate-fade-in"
-                  style={{
-                    color: phase === 'error' ? '#ef4444' : '#707072',
-                    padding: '10px 16px',
-                    backgroundColor: phase === 'error' ? '#ef444410' : '#F5F5F5',
-                    borderRadius: '8px',
-                  }}
+            {/* Run button */}
+            <div className="flex gap-3">
+              <button
+                onClick={runInvestigation}
+                disabled={isRunning}
+                className="chronos-btn-primary flex-1 py-4"
+                style={{
+                  opacity: isRunning ? 0.6 : 1,
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isRunning ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span
+                      className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                      style={{ display: 'inline-block' }}
+                    />
+                    Investigating...
+                  </span>
+                ) : (
+                  'Run Investigation →'
+                )}
+              </button>
+              {phase !== 'idle' && (
+                <button
+                  onClick={reset}
+                  className="chronos-btn-outline-dark px-5 py-4"
                 >
-                  {statusMsg}
-                </p>
+                  Reset
+                </button>
               )}
             </div>
+
+            {/* Status message */}
+            {statusMsg && (
+              <p
+                className="font-body text-xs animate-fade-in mt-4"
+                style={{
+                  color: phase === 'error' ? '#ef4444' : '#707072',
+                  padding: '10px 16px',
+                  backgroundColor: phase === 'error' ? '#ef444410' : '#F5F5F5',
+                  borderRadius: '8px',
+                }}
+              >
+                {statusMsg}
+              </p>
+            )}
 
             {/* Step guide */}
             <div
@@ -372,9 +253,9 @@ function LiveDemoSection() {
                 What happens
               </p>
               {[
-                'POST webhook → /api/v1/webhooks/openmetadata',
+                'POST scenario → /api/v1/demo/run',
                 'SSE stream → /api/v1/investigations/{id}/stream',
-                'View full RCA results below',
+                'View full formatted report →',
               ].map((step, i) => (
                 <div key={i} className="flex gap-3 items-start mb-3">
                   <span
@@ -416,15 +297,13 @@ function LiveDemoSection() {
                 <span className="font-body text-xs" style={{ color: '#707072' }}>
                   Full incident report
                 </span>
-                <a
-                  href={`${API_BASE}/api/v1/incidents/${incidentId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to={`/report/${incidentId}`}
                   className="font-body text-xs"
-                  style={{ color: '#0057FF' }}
+                  style={{ color: '#0057FF', textDecoration: 'none' }}
                 >
-                  {incidentId} →
-                </a>
+                  View Full Report →
+                </Link>
               </div>
             )}
           </div>

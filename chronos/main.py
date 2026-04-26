@@ -20,7 +20,7 @@ from starlette.responses import Response
 
 from chronos.api.middleware import error_handler, logging_middleware
 from chronos.api.rate_limit import limiter
-from chronos.api.routes import incidents, investigations, stats, webhooks, well_known
+from chronos.api.routes import demo, incidents, investigations, stats, webhooks, well_known
 from chronos.api.schemas import HealthResponse
 from chronos.config.settings import settings
 from chronos.mcp.client import mcp_client
@@ -167,6 +167,7 @@ app.add_exception_handler(Exception, error_handler)
 
 # ── Route groups ──────────────────────────────────────────────────────────────
 app.include_router(webhooks.router)
+app.include_router(demo.router)
 app.include_router(incidents.router)
 app.include_router(investigations.router)
 app.include_router(stats.router)
