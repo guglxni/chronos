@@ -78,6 +78,7 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
       if (ev.type === 'complete') {
         completedRef.current = true;
         setIsConnected(false);
+        setError(null);
         es.close();
       }
     };
@@ -104,7 +105,11 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
       setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
 
       const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
-      retryTimerRef.current = setTimeout(connect, delay);
+      retryTimerRef.current = setTimeout(() => {
+        // Re-check: a 'complete' event may have arrived while we were waiting
+        if (!completedRef.current) connect();
+        else setError(null);
+      }, delay);
     };
   }, [incidentId, streamToken, appendEvent]);
 
