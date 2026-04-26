@@ -114,7 +114,8 @@ jobs:
           pip install pip-audit
 
       - name: pip-audit (fail on known vulnerabilities)
-        run: pip-audit --strict
+        # --skip-editable skips the local chronos package (not on PyPI)
+        run: pip-audit --strict --skip-editable
 
   # ── detect-secrets baseline check ────────────────────────────────────────────
   detect-secrets:
