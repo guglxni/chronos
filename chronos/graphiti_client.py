@@ -43,7 +43,7 @@ class _HashEmbedder:
     class config:  # matches EmbedderClient.config protocol
         embedding_dim: int = _EMBED_DIM
 
-    async def create(self, input_data: Any) -> list[float]:  # type: ignore[override]
+    async def create(self, input_data: Any) -> list[float]:
         text = input_data if isinstance(input_data, str) else str(input_data)
         seed = int(hashlib.sha256(text.encode()).hexdigest(), 16) % (2**32)
         rng = np.random.default_rng(seed)
@@ -51,7 +51,7 @@ class _HashEmbedder:
         norm = np.linalg.norm(vec)
         if norm > 0:
             vec = vec / norm
-        return vec.tolist()
+        return vec.tolist()  # type: ignore[no-any-return]
 
     async def create_batch(self, input_data_list: list[str]) -> list[list[float]]:
         return [await self.create(text) for text in input_data_list]
@@ -208,7 +208,7 @@ async def search_nodes(
         if g is None:
             return []
 
-        results = await g.search_(
+        results = await g.search_(  # type: ignore[call-arg]
             query=query,
             group_ids=[group_id],
             num_results=limit,

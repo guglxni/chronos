@@ -110,7 +110,7 @@ def _secret(val: Any) -> str | None:
     if val is None:
         return None
     try:
-        return val.get_secret_value()
+        return val.get_secret_value()  # type: ignore[no-any-return]
     except AttributeError:
         return str(val)
 
@@ -656,9 +656,9 @@ def _cli_main() -> None:
             if args.transport == "stdio":
                 await mcp.run_stdio_async()
             elif args.transport == "sse":
-                await mcp.run_sse_async(host=args.host, port=args.port)
+                await mcp.run_sse_async(host=args.host, port=args.port)  # type: ignore[call-arg]
             else:
-                await mcp.run_streamable_http_async(host=args.host, port=args.port)
+                await mcp.run_streamable_http_async(host=args.host, port=args.port)  # type: ignore[call-arg]
         finally:
             if monitor_task:
                 monitor_task.cancel()

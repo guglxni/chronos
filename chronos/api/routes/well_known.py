@@ -16,6 +16,7 @@ import json
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.responses import Response
 
 from chronos.config.settings import settings
 
@@ -560,7 +561,7 @@ def _render_html(card: dict) -> str:
 
 
 @router.get("/.well-known/agent-card.json")
-async def get_agent_card(request: Request):
+async def get_agent_card(request: Request) -> Response:
     """
     Return the CHRONOS A2A Agent Card.
 

@@ -113,8 +113,8 @@ async def _run_demo_investigation(
         InvestigationTimelineEntry(
             step=sr["step"],
             name=sr["name"],
-            started_at=datetime.fromisoformat(sr["started_at"]),
-            completed_at=datetime.fromisoformat(sr["completed_at"]),
+            started_at=datetime.fromisoformat(str(sr["started_at"])),
+            completed_at=datetime.fromisoformat(str(sr["completed_at"])),
             duration_ms=sr["duration_ms"],
             summary=sr["summary"],
         )

@@ -14,16 +14,14 @@ Security & reliability improvements:
 - Stream endpoint requires a one-time token issued at trigger time (A2).
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
 import logging
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from sse_starlette.sse import EventSourceResponse
 
 from chronos.api.rate_limit import limiter
@@ -98,7 +96,9 @@ def _on_investigation_done(incident_id: str) -> Any:
 
 @router.post("/investigate", response_model=InvestigationTriggerResponse)
 @limiter.limit("5/minute")
-async def trigger_investigation(request: Request, trigger: InvestigationTrigger) -> dict[str, Any]:
+async def trigger_investigation(
+    request: Request, trigger: Annotated[InvestigationTrigger, Body(...)]
+) -> dict[str, Any]:
     """
     Manually trigger a CHRONOS investigation.
 

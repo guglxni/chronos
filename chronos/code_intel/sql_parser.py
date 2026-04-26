@@ -32,8 +32,8 @@ try:
 
     _SQLGLOT_AVAILABLE = True
 except ImportError:
-    sqlglot = None  # type: ignore[assignment,unused-ignore]
-    exp = None  # type: ignore[assignment,unused-ignore]
+    sqlglot = None  # type: ignore[assignment]
+    exp = None  # type: ignore[assignment]
     _SQLGLOT_AVAILABLE = False
 
 # Regex fallback — matches identifiers after FROM/JOIN/INTO/UPDATE keywords.
