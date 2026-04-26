@@ -56,7 +56,7 @@ function LiveDemoSection() {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [phase, setPhase] = useState<'idle' | 'posting' | 'streaming' | 'done' | 'error'>('idle');
 
-  const { events, isConnected, error: sseError } = useSSE(incidentId, streamToken ?? undefined);
+  const { events, isConnected, error: sseError, markComplete } = useSSE(incidentId, streamToken ?? undefined);
 
   const runInvestigation = useCallback(async () => {
     if (isRunning || !selectedScenario) return;
@@ -84,14 +84,26 @@ function LiveDemoSection() {
       setPhase('streaming');
       setStatusMsg(null);
 
-      // Wait for SSE complete then fetch final report
-      await new Promise<void>((resolve) => setTimeout(resolve, 6000));
-      setPhase('done');
+      // Poll for the completed report — LLM synthesis can take 5-20s.
+      // Stop as soon as the report is available (max 30s).
+      let reportData: IncidentReport | null = null;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 2500));
+        try {
+          const reportRes = await fetch(`${API_BASE}/api/v1/incidents/${body.incident_id}`);
+          if (reportRes.ok) {
+            const data = await reportRes.json() as IncidentReport;
+            if (data.probable_root_cause) { reportData = data; break; }
+          }
+        } catch { /* network hiccup — keep polling */ }
+      }
 
-      const reportRes = await fetch(`${API_BASE}/api/v1/incidents/${body.incident_id}`);
-      if (reportRes.ok) {
-        const reportData = await reportRes.json() as IncidentReport;
-        if (reportData.probable_root_cause) setRcaReport(reportData);
+      setPhase('done');
+      if (reportData) {
+        setRcaReport(reportData);
+        // Definitive safety net: stop SSE retries once we have the report,
+        // even if the spec-guaranteed ordering (data before error) was violated.
+        markComplete();
       }
     } catch (err) {
       setPhase('error');
@@ -99,7 +111,7 @@ function LiveDemoSection() {
     } finally {
       setIsRunning(false);
     }
-  }, [selectedScenario, isRunning]);
+  }, [selectedScenario, isRunning, markComplete]);
 
   const reset = () => {
     setIncidentId(null);
@@ -282,7 +294,7 @@ function LiveDemoSection() {
             <DemoTerminal
               events={events}
               isConnected={isConnected}
-              error={sseError}
+              error={rcaReport ? null : sseError}
               isIdle={phase === 'idle'}
             />
 

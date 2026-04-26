@@ -18,6 +18,7 @@ interface UseSSEResult {
   isConnected: boolean;
   error: string | null;
   retryCount: number;
+  markComplete: () => void;
 }
 
 function parseEventData(ev: MessageEvent): SSEEvent {
@@ -39,16 +40,17 @@ function parseEventData(ev: MessageEvent): SSEEvent {
   }
 }
 
-function isInvestigationComplete(ev: MessageEvent): boolean {
+function checkComplete(ev: MessageEvent): boolean {
+  // Named 'complete' event from the backend sentinel
   if (ev.type === 'complete') return true;
-  // The backend pushes an "investigation_complete" status update event before
-  // the None sentinel that closes the connection. Detecting it here means
-  // completedRef is set *before* the connection close fires onerror.
+  // 'investigation_complete' status in an update event — sent BEFORE the
+  // sentinel, so this fires while the connection is still alive and sets
+  // completedRef before the server-side close triggers onerror.
   if (ev.type === 'update') {
     try {
       const d = JSON.parse(ev.data as string) as { status?: string };
       return d?.status === 'investigation_complete';
-    } catch { /* non-JSON update */ }
+    } catch { /* non-JSON update, ignore */ }
   }
   return false;
 }
@@ -71,6 +73,20 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
     });
   }, []);
 
+  // Exposed so the parent component can signal completion externally (e.g.
+  // after successfully fetching the finished incident report). Stops retries
+  // and clears the error banner even if the SSE race was lost.
+  const markComplete = useCallback(() => {
+    completedRef.current = true;
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    esRef.current?.close();
+    setError(null);
+    setIsConnected(false);
+  }, []);
+
   const connect = useCallback(() => {
     if (!incidentId) return;
 
@@ -90,7 +106,10 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
     const handleNamedEvent = (ev: MessageEvent) => {
       appendEvent(parseEventData(ev));
 
-      if (isInvestigationComplete(ev)) {
+      if (checkComplete(ev)) {
+        // Mark done immediately — before the server-side close can fire onerror.
+        // Per the HTML EventSource spec, data events are always dispatched before
+        // the error event for the same TCP session, so this flag is set first.
         completedRef.current = true;
         setIsConnected(false);
         setError(null);
@@ -104,35 +123,32 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
     es.addEventListener('heartbeat', handleNamedEvent);
 
     es.onerror = () => {
+      // Synchronous close is essential — deferring allows the browser's built-in
+      // EventSource auto-reconnect to fire before we can stop it, which caused
+      // a triple-connection loop. We close immediately to prevent that.
       setIsConnected(false);
+      es.close();
 
-      // Defer error handling by one macrotask so any already-buffered named
-      // events (e.g. 'complete') are dispatched first. Calling es.close()
-      // synchronously here would drop those pending events.
-      setTimeout(() => {
-        es.close();
+      if (completedRef.current) {
+        setError(null);
+        return;
+      }
 
-        if (completedRef.current) {
-          setError(null);
-          return;
-        }
+      const attempt = retryCountRef.current + 1;
+      if (attempt > MAX_RETRIES) {
+        setError(`SSE connection lost after ${MAX_RETRIES} retries`);
+        return;
+      }
 
-        const attempt = retryCountRef.current + 1;
-        if (attempt > MAX_RETRIES) {
-          setError(`SSE connection lost after ${MAX_RETRIES} retries`);
-          return;
-        }
+      retryCountRef.current = attempt;
+      setRetryCount(attempt);
+      setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
 
-        retryCountRef.current = attempt;
-        setRetryCount(attempt);
-        setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
-
-        const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
-        retryTimerRef.current = setTimeout(() => {
-          if (!completedRef.current) connect();
-          else setError(null);
-        }, delay);
-      }, 0);
+      const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
+      retryTimerRef.current = setTimeout(() => {
+        if (!completedRef.current) connect();
+        else setError(null);
+      }, delay);
     };
   }, [incidentId, streamToken, appendEvent]);
 
@@ -156,5 +172,5 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
     };
   }, [incidentId, connect]);
 
-  return { events, isConnected, error, retryCount };
+  return { events, isConnected, error, retryCount, markComplete };
 }
