@@ -9,6 +9,10 @@ COPY pyproject.toml .
 COPY chronos/ chronos/
 COPY scripts/ scripts/
 
+# Pre-install packages that pip's backtracking resolver can silently drop
+# when resolving the large litellm+langgraph dependency graph.
+RUN pip install --no-cache-dir "slowapi>=0.1.9" "sse-starlette>=2.1.0"
+
 RUN pip install --no-cache-dir . && \
     useradd -m -u 1000 chronos && \
     chown -R chronos /app
