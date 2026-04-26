@@ -230,8 +230,8 @@ chronos/
 
 ## Hackathon
 
-**Event**: [OpenMetadata Paradox Hackathon](https://wemakedevs.org/) (WeMakeDevs x OpenMetadata)
-**Theme**: "Back to the Future" — temporal paradoxes in the data timeline
+**Event**: [Back to the Metadata Hackathon](https://wemakedevs.org/) — organized by WeMakeDevs x OpenMetadata
+**Theme**: "Back to the Metadata" — temporal intelligence in the data pipeline
 **Tracks**: T-01 (MCP & AI Agents), T-02 (Data Observability), T-05 (Community), T-06 (Governance)
 **Dates**: April 17-26, 2026
 
@@ -260,5 +260,5 @@ This project is licensed under the Apache License 2.0 — see the [LICENSE](LICE
 ---
 
 <p align="center">
-  <strong>Built with ⏳ temporal intelligence for the OpenMetadata Paradox Hackathon</strong>
+  <strong>Built with ⏳ temporal intelligence for the Back to the Metadata Hackathon — WeMakeDevs x OpenMetadata</strong>
 </p>
