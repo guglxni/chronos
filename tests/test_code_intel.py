@@ -51,11 +51,11 @@ def _run(args: list[str], cwd: Path) -> None:
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_SYSTEM": "/dev/null",
     }
-    subprocess.run(
+    subprocess.run(  # noqa: S603
         args,
         cwd=cwd,
         env=env,
-        check=True,  # noqa: S603
+        check=True,
         capture_output=True,
     )
 
