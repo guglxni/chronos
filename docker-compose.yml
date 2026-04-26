@@ -219,7 +219,7 @@ services:
     restart: unless-stopped
     <<: *common-env
     ports:
-      - "8100:8100"
+      - "127.0.0.1:8100:8100"
     depends_on:
       openmetadata-server:
         condition: service_healthy

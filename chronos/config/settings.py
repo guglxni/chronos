@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # manual webhook POSTs work without signing.
     webhook_hmac_secret: SecretStr | None = None
     webhook_signature_required: bool = False
+    # Bearer token for mutation endpoints (acknowledge, resolve).
+    # In dev: leave unset — auth check is skipped.
+    # In prod: must be set; mutations are blocked if absent.
+    api_bearer_token: SecretStr | None = None
 
     # ─── Service URLs (used for outbound links in Slack notifications etc.) ───────
     frontend_url: str = "http://localhost:3000"
@@ -69,6 +73,21 @@ class Settings(BaseSettings):
     lineage_upstream_depth: int = 5
     lineage_downstream_depth: int = 3
     log_level: str = "INFO"
+
+    # ─── Local code intelligence (replaces the GitNexus stub) ─────────────────
+    # Path to the data-platform repo CHRONOS investigates (dbt project, ETL
+    # code, etc.). Defaults to the current working directory so the in-tree
+    # demo works without configuration.
+    code_repo_path: str = "."
+    # Path to the graphify-out artifact for live graph queries. Defaults to
+    # the in-repo ``graphify-out/graph.json`` produced by ``graphify .``.
+    graphify_graph_path: str = "graphify-out/graph.json"
+    # Optional path to a dbt project's ``target/manifest.json`` for exact
+    # lineage. Empty string disables the dbt backend.
+    dbt_manifest_path: str = ""
+    # Toggle to prefer the local backend over the (often-stubbed) GitNexus
+    # MCP server. Default true — set false only if you wire a real GitNexus.
+    code_intel_prefer_local: bool = True
 
     # ─── Startup validation ────────────────────────────────────────────────────
     @property
@@ -117,11 +136,12 @@ class Settings(BaseSettings):
                 )
 
             # Reject plain-HTTP URLs for external services in production — tokens
-            # would travel in cleartext, violating data-handling policies (M8).
+            # would travel in cleartext, violating data-handling policies.
             for url_field, url_value in (
                 ("OPENMETADATA_HOST", self.openmetadata_host),
                 ("LITELLM_PROXY_URL", self.litellm_proxy_url),
                 ("GRAPHITI_MCP_URL", self.graphiti_mcp_url),
+                ("LANGFUSE_HOST", self.langfuse_host),
             ):
                 if url_value.startswith("http://"):
                     missing.append(
@@ -129,6 +149,16 @@ class Settings(BaseSettings):
                     )
         elif self.webhook_signature_required and self.webhook_hmac_secret is None:
             missing.append("WEBHOOK_HMAC_SECRET")
+
+        # CORS wildcard + allow_credentials is a browser security violation.
+        # FastAPI silently ignores credentials on wildcard origins but still
+        # emits permissive headers that confuse clients.  Reject early.
+        if "*" in self.cors_origins and len(self.cors_origins) == 1:
+            missing.append(
+                "CORS_ALLOWED_ORIGINS cannot be '*' — "
+                "wildcard origin is incompatible with allow_credentials=True. "
+                "Specify explicit origin URLs."
+            )
 
         if missing:
             raise ValueError(

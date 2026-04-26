@@ -36,9 +36,15 @@ chronos-frontend/.cache/
 # Docker
 docker-compose.override.yml
 
-# GitNexus / Graphify output
+# GitNexus
 .gitnexus/
-graphify-out/
+
+# Graphify — track report + graph data, ignore temp files and large HTML
+graphify-out/.graphify_*
+graphify-out/.graphify_python
+graphify-out/graph.html
+graphify-out/obsidian/
+graphify-out/wiki/
 
 # Test and coverage
 .coverage
@@ -52,7 +58,21 @@ aidlc-docs/**/*.tmp
 # OS
 Thumbs.db
 
-# Internal review & planning artifacts (do NOT push to remote)
+# Cryptographic key & certificate material — never committed
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+*.der
+*.crt
+*.cer
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.pem.bak
+
+# Internal review, planning & security audit artifacts (do NOT push to remote)
 CODE_REVIEW.md
 internal-docs/
 *.internal.md
@@ -60,3 +80,9 @@ fix-plan-*.md
 review-*.md
 audit-*.md
 security-scan-*.md
+QA_AND_SECURITY_REPORT.md
+PRODUCTION_READINESS_AUDIT.md
+VERCEL_INTEGRATION_PLAN.md
+*_AUDIT.md
+*_REPORT.md
+*_PLAN.md

@@ -30,6 +30,7 @@ def _prod(**overrides) -> Settings:
         openmetadata_host="https://om.example.com",
         litellm_proxy_url="https://llm.example.com",
         graphiti_mcp_url="https://graphiti.example.com/sse",
+        langfuse_host="https://langfuse.example.com",
     )
     base.update(overrides)
     return Settings(_env_file=None, **base)  # type: ignore[call-arg]
@@ -83,6 +84,11 @@ def test_prod_rejects_http_litellm():
 def test_prod_rejects_http_graphiti():
     with pytest.raises(ValueError, match="https://"):
         _prod(graphiti_mcp_url="http://insecure.example.com/sse")
+
+
+def test_prod_rejects_http_langfuse():
+    with pytest.raises(ValueError, match="https://"):
+        _prod(langfuse_host="http://langfuse.internal.example.com")
 
 
 def test_prod_missing_litellm_master_key_raises():

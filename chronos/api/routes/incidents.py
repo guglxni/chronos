@@ -18,9 +18,10 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
+from chronos.api.dependencies import verify_bearer_token
 from chronos.api.schemas import AcknowledgeResponse, IncidentListResponse, ResolveResponse
 from chronos.compliance.prov_generator import safe_generate_provenance as generate_provenance
 from chronos.core import incident_store
@@ -103,7 +104,11 @@ async def get_incident(incident_id: str) -> dict[str, Any]:
 
 # ── Mutations ──────────────────────────────────────────────────────────────────
 
-@router.post("/{incident_id}/acknowledge", response_model=AcknowledgeResponse)
+@router.post(
+    "/{incident_id}/acknowledge",
+    response_model=AcknowledgeResponse,
+    dependencies=[Depends(verify_bearer_token)],
+)
 async def acknowledge_incident(incident_id: str, user: str = "anonymous") -> dict[str, Any]:
     """Acknowledge an incident — marks it as seen by a human."""
     try:
@@ -125,7 +130,11 @@ async def acknowledge_incident(incident_id: str, user: str = "anonymous") -> dic
     }
 
 
-@router.post("/{incident_id}/resolve", response_model=ResolveResponse)
+@router.post(
+    "/{incident_id}/resolve",
+    response_model=ResolveResponse,
+    dependencies=[Depends(verify_bearer_token)],
+)
 async def resolve_incident(incident_id: str, user: str = "anonymous") -> dict[str, Any]:
     """Resolve an incident."""
     try:

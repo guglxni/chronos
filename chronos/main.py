@@ -51,6 +51,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("CHRONOS shutting down cleanly")
 
 
+_is_prod = settings.environment == "production"
+
 app = FastAPI(
     title="CHRONOS",
     description=(
@@ -59,9 +61,11 @@ app = FastAPI(
     ),
     version=settings.version,
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    # Disable interactive docs in production — they expose the full API surface
+    # and accept live requests without any auth gate on the /docs UI itself.
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────

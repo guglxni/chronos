@@ -48,9 +48,29 @@ def _sanitize_evidence_field(value: Any) -> Any:
     """
     if isinstance(value, str):
         clipped = value[:_MAX_FIELD_CHARS]
-        # Break triple-backtick fence escapes and the most common jailbreak phrases.
+        # Break triple-backtick fence escapes.
         clipped = clipped.replace("```", "`​``")
-        return clipped
+        # Neutralise common prompt-injection directives.  Prefix the line with a
+        # visible marker so auditors can spot attempted injections in Langfuse traces
+        # without silently discarding the content.
+        _INJECTION_PREFIXES = (
+            "IGNORE PREVIOUS",
+            "DISREGARD",
+            "FORGET PREVIOUS",
+            "NEW INSTRUCTIONS",
+            "SYSTEM:",
+            "USER:",
+            "ASSISTANT:",
+        )
+        lines = clipped.split("\n")
+        neutralized: list[str] = []
+        for line in lines:
+            stripped_upper = line.lstrip().upper()
+            if any(stripped_upper.startswith(p) for p in _INJECTION_PREFIXES):
+                neutralized.append("[INJECTION-ATTEMPT] " + line)
+            else:
+                neutralized.append(line)
+        return "\n".join(neutralized)
     if isinstance(value, list):
         return [_sanitize_evidence_field(v) for v in value]
     if isinstance(value, dict):
