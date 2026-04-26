@@ -37,8 +37,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import networkx as nx  # type: ignore[import-untyped]
-from networkx.readwrite import json_graph  # type: ignore[import-untyped]
+import networkx as nx
+from networkx.readwrite import json_graph
 
 logger = logging.getLogger("chronos.code_intel.graphify_adapter")
 
