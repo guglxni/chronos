@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     lineage_downstream_depth: int = 3
     log_level: str = "INFO"
 
+    # ─── LLM model routing ─────────────────────────────────────────────────────
+    # Model name passed to the LiteLLM proxy (or Groq/OpenAI-compat endpoint).
+    # When using Groq directly (LITELLM_PROXY_URL=https://api.groq.com/openai/v1)
+    # set this to the Groq model ID, e.g. meta-llama/llama-4-scout-17b-16e-instruct.
+    llm_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+
     # ─── Local code intelligence (replaces the GitNexus stub) ─────────────────
     # Path to the data-platform repo CHRONOS investigates (dbt project, ETL
     # code, etc.). Defaults to the current working directory so the in-tree

@@ -201,7 +201,7 @@ async def synthesize_rca(evidence: dict[str, Any]) -> dict[str, Any]:
 
     try:
         raw = await _call_litellm(
-            model="chronos-synthesis",
+            model=settings.llm_model,
             messages=messages,
             temperature=0.1,
             max_tokens=2048,
@@ -251,7 +251,7 @@ async def extract_structured(raw_text: str, schema_hint: str) -> dict[str, Any]:
 
     try:
         raw = await _call_litellm(
-            model="chronos-extraction",
+            model=settings.llm_model,
             messages=messages,
             temperature=0.0,
             max_tokens=1024,
