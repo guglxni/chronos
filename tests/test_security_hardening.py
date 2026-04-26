@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import unittest.mock as mock
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -24,8 +25,6 @@ from chronos.core import incident_store
 from chronos.llm.client import _sanitize_evidence_field
 from chronos.main import app
 from chronos.models.incident import IncidentReport, IncidentStatus, RootCauseCategory
-
-from datetime import UTC, datetime
 
 client = TestClient(app, raise_server_exceptions=True)
 
@@ -168,8 +167,9 @@ class TestHmacTimestampRequired:
     """In production, X-OM-Timestamp must be present to prevent replay attacks."""
 
     def test_timestamp_required_in_production(self):
-        from chronos.api.dependencies import _verify_signature
         import asyncio
+
+        from chronos.api.dependencies import _verify_signature
 
         async def _run():
             mock_request = mock.MagicMock()
@@ -194,8 +194,9 @@ class TestHmacTimestampRequired:
 
     def test_timestamp_optional_in_dev(self):
         """Dev mode skips signature check entirely; no timestamp needed."""
-        from chronos.api.dependencies import _verify_signature
         import asyncio
+
+        from chronos.api.dependencies import _verify_signature
 
         async def _run():
             mock_request = mock.MagicMock()

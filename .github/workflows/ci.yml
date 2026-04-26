@@ -108,14 +108,22 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install package + pip-audit
+      - name: Install deps + pip-audit
         run: |
-          pip install -e .
           pip install pip-audit
+          # Extract declared deps to a temporary requirements file so pip-audit
+          # audits only published packages (chronos itself is not on PyPI).
+          python - <<'PYEOF'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              d = tomllib.load(f)
+          deps = d["project"]["dependencies"]
+          with open("_audit_reqs.txt", "w") as out:
+              out.write("\n".join(deps) + "\n")
+          PYEOF
 
       - name: pip-audit (fail on known vulnerabilities)
-        # --skip-editable skips the local chronos package (not on PyPI)
-        run: pip-audit --strict --skip-editable
+        run: pip-audit -r _audit_reqs.txt
 
   # ── detect-secrets baseline check ────────────────────────────────────────────
   detect-secrets:

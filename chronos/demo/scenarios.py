@@ -1,5 +1,6 @@
 """Pre-seeded investigation scenarios for the CHRONOS live demo."""
 from __future__ import annotations
+
 from datetime import UTC, datetime, timedelta
 from typing import Any
 

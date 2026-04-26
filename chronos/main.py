@@ -151,7 +151,7 @@ def _cli_main() -> None:
     """Entry point for the ``chronos-server`` console script."""
     import uvicorn
 
-    uvicorn.run("chronos.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("chronos.main:app", host="0.0.0.0", port=8000, reload=False)  # noqa: S104
 
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────
