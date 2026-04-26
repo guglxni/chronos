@@ -142,7 +142,10 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
 
       retryCountRef.current = attempt;
       setRetryCount(attempt);
-      setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
+      // Don't show the error banner while retries are in flight — the reconnect
+      // will succeed once the backend's queue is still alive. Only show error
+      // when we've exhausted all attempts.
+      setError(null);
 
       const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
       retryTimerRef.current = setTimeout(() => {

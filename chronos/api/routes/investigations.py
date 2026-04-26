@@ -46,6 +46,14 @@ def register_sse_queue(incident_id: str, stream_token: str, queue: asyncio.Queue
     """Register a pre-created SSE queue — used by demo.py and external orchestrators."""
     _sse_queues[incident_id] = queue
     _sse_tokens[incident_id] = stream_token
+    # Schedule TTL eviction so the queue doesn't leak if the client never connects
+    # or if the client disconnects and never reconnects after the investigation ends.
+    cleanup = asyncio.create_task(
+        _evict_orphan_queue(incident_id),
+        name=f"sse-cleanup-{incident_id}",
+    )
+    _active_tasks.add(cleanup)
+    cleanup.add_done_callback(_active_tasks.discard)
 
 
 _SSE_HEARTBEAT_INTERVAL = 25.0  # seconds
@@ -168,6 +176,7 @@ async def stream_investigation(
         )
 
     async def event_generator() -> AsyncGenerator[dict[str, str], None]:
+        _investigation_done = False
         try:
             # Initial connection acknowledgement
             yield {
@@ -180,6 +189,7 @@ async def stream_investigation(
                     event = await asyncio.wait_for(queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL)
                     if event is None:
                         # Sentinel — investigation pipeline finished
+                        _investigation_done = True
                         yield {
                             "event": "complete",
                             "data": json.dumps({"status": "complete", "incident_id": incident_id}),
@@ -193,9 +203,19 @@ async def stream_investigation(
                         "data": json.dumps({"status": "heartbeat", "incident_id": incident_id}),
                     }
         finally:
-            # Always remove the queue and token so stale entries don't accumulate
-            _sse_queues.pop(incident_id, None)
-            _sse_tokens.pop(incident_id, None)
-            logger.debug("SSE queue cleaned up for incident %s", incident_id)
+            if _investigation_done:
+                # Investigation is fully done — safe to remove queue and token now.
+                _sse_queues.pop(incident_id, None)
+                _sse_tokens.pop(incident_id, None)
+                logger.debug("SSE queue cleaned up for incident %s", incident_id)
+            else:
+                # Client disconnected before the investigation completed.
+                # Keep the queue and token alive so the client can reconnect
+                # and resume the stream. The TTL cleanup task handles eviction
+                # after _SSE_ORPHAN_TTL seconds if no client reconnects.
+                logger.debug(
+                    "SSE client disconnected mid-investigation for %s — queue preserved for reconnect",
+                    incident_id,
+                )
 
     return EventSourceResponse(event_generator())
