@@ -56,6 +56,7 @@ dev = [
 ]
 
 [project.scripts]
+chronos-server = "chronos.main:_cli_main"
 chronos-mcp = "chronos.mcp.server:_cli_main"
 
 [tool.hatch.build.targets.wheel]

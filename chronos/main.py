@@ -147,6 +147,13 @@ async def enforce_body_size(
     return await call_next(request)
 
 
+def _cli_main() -> None:
+    """Entry point for the ``chronos-server`` console script."""
+    import uvicorn
+
+    uvicorn.run("chronos.main:app", host="0.0.0.0", port=8000, reload=False)
+
+
 # ── Rate limiting ─────────────────────────────────────────────────────────────
 app.state.limiter = limiter
 

@@ -378,6 +378,186 @@ export default function AgentSection() {
           </div>
         </div>
 
+        {/* ── Agent self-install ── */}
+        <div
+          className="mb-24 p-8 md:p-12"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: '4px',
+          }}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+            {/* Left — narrative */}
+            <div>
+              <p
+                className="font-body text-xs tracking-[0.3em] uppercase mb-4"
+                style={{ color: '#0057FF', letterSpacing: '0.2em' }}
+              >
+                Autonomous Setup
+              </p>
+              <h3
+                className="font-heading text-white mb-4 leading-tight"
+                style={{ fontSize: 'clamp(28px, 3.5vw, 44px)' }}
+              >
+                Install yourself.
+                <br />
+                No human needed.
+              </h3>
+              <p
+                className="font-body text-sm leading-relaxed mb-8"
+                style={{ color: '#707072' }}
+              >
+                CHRONOS publishes a machine-readable{' '}
+                <code
+                  className="font-mono px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#F5F5F5', fontSize: '0.85em' }}
+                >
+                  /.well-known/agent-card.json
+                </code>{' '}
+                endpoint. Any A2A-compatible agent can discover capabilities,
+                required environment variables, and bootstrap commands without
+                reading a README. Three shell commands install and start the
+                full stack.
+              </p>
+
+              {/* Step list */}
+              <div className="space-y-4">
+                {[
+                  {
+                    n: '1',
+                    cmd: 'curl -s https://chronos-api-0e8635fe890d.herokuapp.com/.well-known/agent-card.json | jq .skills',
+                    label: 'Discover capabilities',
+                  },
+                  {
+                    n: '2',
+                    cmd: 'pip install chronos-data && chronos-server --help',
+                    label: 'Install & verify',
+                  },
+                  {
+                    n: '3',
+                    cmd: 'OPENMETADATA_HOST=http://your-om:8585 chronos-mcp',
+                    label: 'Start MCP server',
+                  },
+                ].map(({ n, cmd, label }) => (
+                  <div key={n} className="flex gap-4 items-start">
+                    <span
+                      className="font-heading text-xs w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: 'rgba(0,87,255,0.15)',
+                        color: '#0057FF',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {n}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-xs mb-1.5" style={{ color: '#707072' }}>{label}</p>
+                      <code
+                        className="font-mono text-xs block px-3 py-2 rounded overflow-x-auto"
+                        style={{
+                          backgroundColor: '#0A0A0A',
+                          color: '#F5F5F5',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {cmd}
+                      </code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — env var checklist + agent-card preview */}
+            <div className="space-y-6">
+
+              {/* Env var checklist */}
+              <div>
+                <p
+                  className="font-body text-xs tracking-widest uppercase mb-4"
+                  style={{ color: '#404040', letterSpacing: '0.15em' }}
+                >
+                  Required environment
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { var: 'OPENMETADATA_HOST', desc: 'OpenMetadata API base URL', required: true },
+                    { var: 'DBT_MANIFEST_PATH', desc: 'Path to dbt manifest.json', required: true },
+                    { var: 'ANTHROPIC_API_KEY', desc: 'Or any LiteLLM-compatible key', required: false },
+                    { var: 'NEO4J_URI', desc: 'Graphiti knowledge graph', required: false },
+                    { var: 'SLACK_BOT_TOKEN', desc: 'Incident notifications', required: false },
+                  ].map(({ var: v, desc, required }) => (
+                    <div
+                      key={v}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: required ? '#0057FF' : '#404040' }}
+                      />
+                      <span className="font-mono text-xs flex-1" style={{ color: '#F5F5F5' }}>{v}</span>
+                      <span className="font-body text-xs" style={{ color: '#404040' }}>{desc}</span>
+                      {!required && (
+                        <span
+                          className="font-body text-xs px-1.5 py-0.5 rounded"
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.04)',
+                            color: '#404040',
+                            fontSize: '10px',
+                          }}
+                        >
+                          optional
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Agent-card CTA */}
+              <div
+                className="p-5 flex items-center justify-between gap-4 rounded"
+                style={{
+                  backgroundColor: 'rgba(0,87,255,0.07)',
+                  border: '1px solid rgba(0,87,255,0.2)',
+                }}
+              >
+                <div>
+                  <p className="font-body text-xs mb-1" style={{ color: '#0057FF' }}>
+                    A2A Discovery Endpoint
+                  </p>
+                  <p className="font-mono text-xs" style={{ color: '#707072' }}>
+                    /.well-known/agent-card.json
+                  </p>
+                </div>
+                <a
+                  href="https://chronos-api-0e8635fe890d.herokuapp.com/.well-known/agent-card.json"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-body text-xs px-4 py-2 rounded-full flex-shrink-0 transition-all"
+                  style={{
+                    backgroundColor: '#0057FF',
+                    color: '#FFFFFF',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#003ED4'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#0057FF'; }}
+                >
+                  View JSON →
+                </a>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
         {/* ── Quick start ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
           <div>

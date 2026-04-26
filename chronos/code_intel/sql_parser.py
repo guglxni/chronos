@@ -78,12 +78,18 @@ def _extract_with_sqlglot(sql: str, dialect: str | None) -> list[str]:
             continue
         for table in parsed.find_all(exp.Table):  # type: ignore[union-attr,unused-ignore]
             try:
-                # ``exp.Table.sql()`` returns the fully qualified form with
-                # quoting normalised; we strip and lowercase below.
-                qualified = table.sql(dialect=dialect or None)
+                # Build the qualified name from structured AST attributes
+                # (catalog, db, name) instead of table.sql() which includes
+                # aliases like "raw.users AS u" and breaks normalisation.
+                parts = [
+                    p.strip('"').strip("`").lower()
+                    for p in [table.catalog, table.db, table.name]
+                    if p
+                ]
+                qualified = ".".join(parts)
             except Exception:
-                qualified = table.name
-            normalised = _normalise_identifier(qualified)
+                qualified = getattr(table, "name", "") or ""
+            normalised = qualified.strip()
             if normalised:
                 tables.add(normalised)
     return sorted(tables)
