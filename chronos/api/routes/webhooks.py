@@ -37,7 +37,13 @@ router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
 logger = logging.getLogger("chronos.webhooks")
 
 # OpenMetadata event types that should trigger an investigation
-_TRIGGER_EVENT_TYPES = {"TEST_CASE_FAILED", "testCaseFailed"}
+# Accept all known casing variants sent by different OM versions and the demo UI
+_TRIGGER_EVENT_TYPES = {
+    "TEST_CASE_FAILED",
+    "testCaseFailed",
+    "TestCaseFailed",
+    "test_case_failed",
+}
 
 
 @router.post(

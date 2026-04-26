@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class OpenMetadataTestResult(BaseModel):
-    testCaseStatus: str
-    timestamp: int
+    testCaseStatus: str = "Failed"
+    timestamp: int = 0
     result: str = ""
     testResultValue: list[dict] = Field(default_factory=list)
 
@@ -33,6 +33,19 @@ class OpenMetadataWebhookPayload(BaseModel):
     previousVersion: dict[str, Any] | None = None
     changeDescription: dict[str, Any] | None = None
     testResult: OpenMetadataTestResult | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_aliases(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        # Accept entityFQN as alias for entityFullyQualifiedName (demo compat)
+        if "entityFQN" in data and not data.get("entityFullyQualifiedName"):
+            data["entityFullyQualifiedName"] = data.pop("entityFQN")
+        # Accept testCaseResult as alias for testResult (demo compat)
+        if "testCaseResult" in data and "testResult" not in data:
+            data["testResult"] = data.pop("testCaseResult")
+        return data
 
 
 class OpenLineageFacet(BaseModel):
