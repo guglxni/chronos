@@ -39,6 +39,20 @@ function parseEventData(ev: MessageEvent): SSEEvent {
   }
 }
 
+function isInvestigationComplete(ev: MessageEvent): boolean {
+  if (ev.type === 'complete') return true;
+  // The backend pushes an "investigation_complete" status update event before
+  // the None sentinel that closes the connection. Detecting it here means
+  // completedRef is set *before* the connection close fires onerror.
+  if (ev.type === 'update') {
+    try {
+      const d = JSON.parse(ev.data as string) as { status?: string };
+      return d?.status === 'investigation_complete';
+    } catch { /* non-JSON update */ }
+  }
+  return false;
+}
+
 export function useSSE(incidentId: string | null, streamToken?: string): UseSSEResult {
   const [events, setEvents] = useState<SSEEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -75,7 +89,8 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
 
     const handleNamedEvent = (ev: MessageEvent) => {
       appendEvent(parseEventData(ev));
-      if (ev.type === 'complete') {
+
+      if (isInvestigationComplete(ev)) {
         completedRef.current = true;
         setIsConnected(false);
         setError(null);
@@ -90,26 +105,34 @@ export function useSSE(incidentId: string | null, streamToken?: string): UseSSER
 
     es.onerror = () => {
       setIsConnected(false);
-      es.close();
 
-      if (completedRef.current) return;
+      // Defer error handling by one macrotask so any already-buffered named
+      // events (e.g. 'complete') are dispatched first. Calling es.close()
+      // synchronously here would drop those pending events.
+      setTimeout(() => {
+        es.close();
 
-      const attempt = retryCountRef.current + 1;
-      if (attempt > MAX_RETRIES) {
-        setError(`SSE connection lost after ${MAX_RETRIES} retries`);
-        return;
-      }
+        if (completedRef.current) {
+          setError(null);
+          return;
+        }
 
-      retryCountRef.current = attempt;
-      setRetryCount(attempt);
-      setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
+        const attempt = retryCountRef.current + 1;
+        if (attempt > MAX_RETRIES) {
+          setError(`SSE connection lost after ${MAX_RETRIES} retries`);
+          return;
+        }
 
-      const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
-      retryTimerRef.current = setTimeout(() => {
-        // Re-check: a 'complete' event may have arrived while we were waiting
-        if (!completedRef.current) connect();
-        else setError(null);
-      }, delay);
+        retryCountRef.current = attempt;
+        setRetryCount(attempt);
+        setError(`SSE disconnected — reconnecting (attempt ${attempt}/${MAX_RETRIES})…`);
+
+        const delay = RETRY_BASE_MS * 2 ** (attempt - 1);
+        retryTimerRef.current = setTimeout(() => {
+          if (!completedRef.current) connect();
+          else setError(null);
+        }, delay);
+      }, 0);
     };
   }, [incidentId, streamToken, appendEvent]);
 
