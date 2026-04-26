@@ -332,6 +332,60 @@ export default function AgentSection() {
           </div>
         </div>
 
+        {/* ── Skills install callout ── */}
+        <div
+          className="mb-12 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5"
+          style={{
+            backgroundColor: 'rgba(0,87,255,0.07)',
+            border: '1px solid rgba(0,87,255,0.25)',
+            borderRadius: '4px',
+          }}
+        >
+          <div className="flex-1 min-w-0">
+            <p
+              className="font-body text-xs tracking-[0.2em] uppercase mb-1.5"
+              style={{ color: '#0057FF', letterSpacing: '0.15em' }}
+            >
+              Agent Skill · one-command install
+            </p>
+            <p className="font-body text-sm mb-3" style={{ color: '#707072' }}>
+              Drop <code className="font-mono px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#F5F5F5', fontSize: '0.85em' }}>/chronos</code> into any Claude Code session or MCP-compatible agent.
+              Your agent calls CHRONOS tools within its own flow — not a separate agent, a tool harness.
+            </p>
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded"
+              style={{
+                backgroundColor: '#0A0A0A',
+                border: '1px solid rgba(255,255,255,0.06)',
+                display: 'inline-flex',
+              }}
+            >
+              <span className="font-mono text-xs" style={{ color: '#0057FF' }}>$</span>
+              <span className="font-mono text-sm" style={{ color: '#F5F5F5' }}>npx skills add guglxni/chronos-skill</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <a
+              href="https://github.com/guglxni/chronos-skill"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-xs px-5 py-2.5 rounded-full text-center transition-all"
+              style={{
+                backgroundColor: '#0057FF',
+                color: '#FFFFFF',
+                textDecoration: 'none',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#003ED4'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#0057FF'; }}
+            >
+              View Skill →
+            </a>
+            <p className="font-mono text-xs text-center" style={{ color: '#404040' }}>
+              39 agents · global
+            </p>
+          </div>
+        </div>
+
         {/* ── Tool grid ── */}
         <div
           className="mb-6 pb-2"
@@ -401,9 +455,9 @@ export default function AgentSection() {
                 className="font-heading text-white mb-4 leading-tight"
                 style={{ fontSize: 'clamp(28px, 3.5vw, 44px)' }}
               >
-                Install yourself.
+                Self-configure.
                 <br />
-                No human needed.
+                No README needed.
               </h3>
               <p
                 className="font-body text-sm leading-relaxed mb-8"
@@ -416,10 +470,9 @@ export default function AgentSection() {
                 >
                   /.well-known/agent-card.json
                 </code>{' '}
-                endpoint. Any A2A-compatible agent can discover capabilities,
-                required environment variables, and bootstrap commands without
-                reading a README. Three shell commands install and start the
-                full stack.
+                discovery endpoint. Your agent reads it, learns what tools are
+                available, and adds them to its own flow — no human writes config.
+                A2A is the handshake; MCP is the ongoing conversation.
               </p>
 
               {/* Step list */}
@@ -531,10 +584,13 @@ export default function AgentSection() {
               >
                 <div>
                   <p className="font-body text-xs mb-1" style={{ color: '#0057FF' }}>
-                    A2A Discovery Endpoint
+                    Agent Discovery Card
                   </p>
                   <p className="font-mono text-xs" style={{ color: '#707072' }}>
                     /.well-known/agent-card.json
+                  </p>
+                  <p className="font-body text-xs mt-1" style={{ color: '#404040' }}>
+                    Read this to auto-configure · then use MCP
                   </p>
                 </div>
                 <a
@@ -777,7 +833,22 @@ export default function AgentSection() {
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#F5F5F5'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#707072'; }}
             >
-              Agent Card (A2A)
+              Discovery Card →
+            </a>
+            <a
+              href="https://github.com/guglxni/chronos-skill"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-body text-sm flex items-center gap-2 px-6 py-3 rounded-full transition-colors"
+              style={{
+                color: '#707072',
+                border: '1.5px solid rgba(255,255,255,0.1)',
+                borderRadius: '30px',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#F5F5F5'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#707072'; }}
+            >
+              Agent Skill (GitHub) →
             </a>
           </div>
         </div>
