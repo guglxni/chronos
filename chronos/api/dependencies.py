@@ -79,7 +79,6 @@ async def verify_bearer_token(
         )
 
     if not hmac.compare_digest(token, configured_token):
-        client_ip = "unknown"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid bearer token",
