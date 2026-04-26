@@ -3,14 +3,27 @@ Step 1 — Scope Failure
 
 Fetches the failing test case and affected entity details from OpenMetadata.
 Extracts column information from the test entity link.
+
+In addition to the OpenMetadata calls, this step now consults the graphify
+adapter for the entity's *architectural community* — the louvain cluster of
+code modules that implement or consume the entity. Surfacing this early in
+the pipeline means later steps (and the LLM RCA prompt) have a clear
+ownership / module hint without an extra MCP roundtrip.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 from chronos.agent.state import InvestigationState
-from chronos.mcp.tools import om_get_entity, om_get_test_results
+from chronos.mcp.tools import (
+    graphify_get_community,
+    om_get_entity,
+    om_get_test_results,
+)
+
+logger = logging.getLogger("chronos.agent.scope_failure")
 
 
 async def scope_failure_node(state: InvestigationState) -> InvestigationState:
@@ -68,6 +81,28 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
         except StopIteration:
             pass
 
+    # Architectural context — non-fatal best effort. The graphify graph may
+    # not contain the data entity (it indexes the CHRONOS codebase, not the
+    # data warehouse) but for code-shaped entity names it returns the
+    # community membership which is useful as an ownership hint.
+    architectural_community: dict = {}
+    if entity_fqn:
+        # Try the most specific name first; fall back to the bare table name.
+        candidates = [entity_fqn]
+        last_segment = entity_fqn.rsplit(".", 1)[-1]
+        if last_segment and last_segment != entity_fqn:
+            candidates.append(last_segment)
+        for candidate in candidates:
+            try:
+                community = await graphify_get_community(candidate, limit=20)
+            except Exception as exc:
+                logger.debug("graphify_get_community(%s) failed: %s",
+                             candidate, exc)
+                community = {}
+            if community:
+                architectural_community = community
+                break
+
     step_result = {
         "step": 1,
         "name": "scope_failure",
@@ -76,7 +111,8 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
         "summary": (
             f"Scoped failure: entity={entity_fqn}, "
             f"test={test_name or '(first failed)'}, "
-            f"columns={affected_columns}"
+            f"columns={affected_columns}, "
+            f"community={architectural_community.get('community_id', 'n/a')}"
         ),
     }
 
@@ -86,5 +122,6 @@ async def scope_failure_node(state: InvestigationState) -> InvestigationState:
         "affected_entity": entity,
         "affected_columns": affected_columns,
         "last_passed_at": last_passed_at,
+        "architectural_community": architectural_community,
         "step_results": [*state.get("step_results", []), step_result],
     }

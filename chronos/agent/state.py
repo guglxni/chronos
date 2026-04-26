@@ -56,6 +56,11 @@ class InvestigationState(InvestigationInputs, total=False):
     related_code_files: list[dict[str, Any]]
     recent_commits: list[dict[str, Any]]
     code_dependencies: list[str]
+    dbt_upstream_models: list[dict[str, Any]]
+    dbt_downstream_models: list[dict[str, Any]]
+    code_graph_neighbors: list[dict[str, Any]]
+    architectural_community: dict[str, Any]
+    architectural_blast_radius: list[dict[str, Any]]
 
     # ── Step 5: Downstream impact ─────────────────────────────────────────────
     downstream_assets: list[dict[str, Any]]
