@@ -20,12 +20,49 @@ lock-free because dict reads are atomic under CPython's GIL.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
+from weakref import WeakSet
 
 from chronos.models.incident import IncidentReport
 
 logger = logging.getLogger("chronos.core.store")
+
+# Track in-flight FalkorDB persistence tasks so we can:
+#   1. Bound concurrent writes (cap at _MAX_PENDING_PERSISTS)
+#   2. Optionally await them in tests for determinism
+_pending_persists: WeakSet[asyncio.Task] = WeakSet()
+_MAX_PENDING_PERSISTS = 100
+
+
+def _schedule_persist(report: IncidentReport) -> None:
+    """Fire-and-forget background write to FalkorDB.
+
+    Imports inside the function to avoid a circular import — persistence
+    must not import the store back (it doesn't, but keeping defensive).
+    Also tolerates being called outside an async context (tests, scripts):
+    when there's no running loop, persistence is silently skipped — the
+    in-memory store still has the record.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Sync caller (test, CLI script) — no loop to schedule on. Skip.
+        return
+
+    if len(_pending_persists) >= _MAX_PENDING_PERSISTS:
+        logger.debug("Persist backpressure: %d pending — dropping oldest", len(_pending_persists))
+        # WeakSet iteration order isn't guaranteed; this is a best-effort drop.
+        try:
+            next(iter(_pending_persists)).cancel()
+        except Exception:
+            pass
+
+    from chronos.persistence import falkor_store
+
+    task = loop.create_task(falkor_store.persist(report), name=f"persist-{report.incident_id}")
+    _pending_persists.add(task)
 
 # Keyed by incident_id string.  All mutations go through store() to ensure
 # the store always holds validated IncidentReport instances — never raw dicts.
@@ -65,6 +102,10 @@ def store(report: IncidentReport | dict) -> None:
             _incidents.pop(oldest_key, None)
             logger.debug("Evicted oldest incident %s (store at cap)", oldest_key)
     logger.info("Stored incident %s", report.incident_id)
+    # Durable write to FalkorDB so the incident survives dyno restarts.
+    # Backgrounded so the request-handling thread doesn't wait on the
+    # network round-trip — the in-memory store is the read source of truth.
+    _schedule_persist(report)
 
 
 __all__ = ["get", "get_or_raise", "list_all", "store", "update_field"]
@@ -106,4 +147,6 @@ def update_field(incident_id: str, **kwargs: object) -> IncidentReport:
             raise KeyError(f"Incident {incident_id!r} not found")
         updated = report.model_copy(update=kwargs)
         _incidents[incident_id] = updated
+    # Persist the update so acks/resolves survive a dyno restart.
+    _schedule_persist(updated)
     return updated

@@ -61,6 +61,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # populate the dashboard via real investigations against the live
     # OpenMetadata catalog.
 
+    # Hydrate the in-memory incident store from FalkorDB so the dashboard
+    # survives dyno restarts. Without this, every deploy / daily restart
+    # would wipe the dashboard until real_seed.py is re-run.
+    try:
+        from chronos.core import incident_store as _store_module
+        from chronos.persistence import falkor_store, is_configured as _persist_configured
+        if _persist_configured():
+            hydrated = await falkor_store.hydrate(limit=_store_module._MAX_STORE_SIZE)
+            for report in hydrated:
+                _store_module._incidents[report.incident_id] = report
+            logger.info("Hydrated %d incidents from FalkorDB", len(hydrated))
+        else:
+            logger.info("FalkorDB not configured — starting with empty in-memory store")
+    except Exception as exc:
+        logger.warning("Hydration failed (starting empty): %s", exc)
+
     yield
     await mcp_client.close()
     logger.info("CHRONOS shutting down cleanly")
