@@ -198,12 +198,15 @@ app.add_exception_handler(Exception, error_handler)
 # ── Route groups ──────────────────────────────────────────────────────────────
 app.include_router(webhooks.router)
 app.include_router(demo.router)
+# Analytics MUST be registered before incidents.router because both share the
+# /api/v1/incidents prefix and FastAPI matches in registration order — without
+# this, /stats, /trends, /by-category get swallowed by /api/v1/incidents/{id}.
+app.include_router(analytics.router)
 app.include_router(incidents.router)
 app.include_router(investigations.router)
 app.include_router(stats.router)
 app.include_router(well_known.router)
 app.include_router(health_components.router)
-app.include_router(analytics.router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
