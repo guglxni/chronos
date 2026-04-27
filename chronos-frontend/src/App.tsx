@@ -69,6 +69,7 @@ class ChunkErrorBoundary extends React.Component<
 // Route-level code splitting
 const Demo = lazy(() => import('./pages/Demo'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const DashboardV2 = lazy(() => import('./pages/DashboardV2'));
 const IncidentDetail = lazy(() => import('./pages/IncidentDetail'));
 const IncidentReport = lazy(() => import('./pages/IncidentReport'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -288,6 +289,7 @@ function AppRoutes() {
               <Suspense fallback={<LoadingSpinner size="lg" />}>
                 <Routes>
                   <Route path="/" element={<Demo />} />
+                  <Route path="/dashboard" element={<DashboardV2 />} />
                   <Route path="/report/:incidentId" element={<IncidentReport />} />
                 </Routes>
               </Suspense>

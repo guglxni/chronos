@@ -21,6 +21,7 @@ from starlette.responses import Response
 from chronos.api.middleware import error_handler, logging_middleware
 from chronos.api.rate_limit import limiter
 from chronos.api.routes import (
+    analytics,
     demo,
     health_components,
     incidents,
@@ -54,6 +55,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.debug,
     )
     setup_openllmetry()
+
+    # Auto-seed historical demo incidents when the store is empty so the
+    # dashboard has realistic data on first load. Idempotent — only runs
+    # once per dyno lifecycle, and only when the store starts empty.
+    try:
+        from chronos.core import incident_store
+        from chronos.demo.seeder import seed_incidents
+        if not incident_store.list_all():
+            seeded = await seed_incidents(count=30, seed=42)
+            logger.info("Auto-seeded %d historical demo incidents", seeded)
+    except Exception as exc:
+        logger.warning("Demo auto-seed skipped: %s", exc)
+
     yield
     await mcp_client.close()
     logger.info("CHRONOS shutting down cleanly")
@@ -189,6 +203,7 @@ app.include_router(investigations.router)
 app.include_router(stats.router)
 app.include_router(well_known.router)
 app.include_router(health_components.router)
+app.include_router(analytics.router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
