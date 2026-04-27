@@ -43,28 +43,28 @@ CHRONOS is an autonomous agent that **investigates data quality incidents** by r
 
 ```
                     ┌──────────────────────────────────────────────┐
-                    │           EVENT INGESTION LAYER               │
-                    │  OpenMetadata Webhooks │ OpenLineage Events   │
+                    │          EVENT INGESTION LAYER               │
+                    │  OpenMetadata Webhooks │ OpenLineage Events  │
                     └──────────────┬───────────────────────────────┘
                                    │
                     ┌──────────────▼───────────────────────────────┐
-                    │       EVENT ROUTER & DEDUPLICATOR             │
+                    │      EVENT ROUTER & DEDUPLICATOR             │
                     └──────────────┬───────────────────────────────┘
                                    │
                     ┌──────────────▼───────────────────────────────┐
-                    │     INVESTIGATION ORCHESTRATOR (LangGraph)    │
-                    │                                               │
-                    │  PRIOR_INV → SCOPE → TEMPORAL → LINEAGE →   │
+                    │    INVESTIGATION ORCHESTRATOR (LangGraph)    │
+                    │                                              │
+                    │  PRIOR_INV → SCOPE → TEMPORAL → LINEAGE →    │
                     │  CODE → DOWNSTREAM → AUDIT → SYNTHESIS →     │
-                    │  NOTIFY → PERSIST_TRACE                       │
-                    │                                               │
-                    │  ┌────────────┐ ┌──────────┐ ┌────────────┐ │
+                    │  NOTIFY → PERSIST_TRACE                      │
+                    │                                              │
+                    │  ┌────────────┐ ┌──────────┐ ┌────────────┐  │
                     │  │ OpenMeta   │ │ Graphiti  │ │ GitNexus   │ │
                     │  │ MCP        │ │ MCP       │ │ MCP        │ │
-                    │  └────────────┘ └──────────┘ └────────────┘ │
-                    │                                               │
+                    │  └────────────┘ └──────────┘ └────────────┘  │
+                    │                                              │
                     │  LLM: LiteLLM (Claude / Llama / GPT)         │
-                    │  Traces: Langfuse │ OTel: OpenLLMetry         │
+                    │  Traces: Langfuse │ OTel: OpenLLMetry        │
                     └──────────────┬───────────────────────────────┘
                                    │
                     ┌──────────────▼───────────────────────────────┐
