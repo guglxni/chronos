@@ -23,7 +23,7 @@ export default function HeroSection() {
         {/* Eyebrow */}
         <p
           className="text-xs tracking-[0.3em] uppercase mb-8 font-body"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           AI Data Infrastructure Intelligence
         </p>
@@ -43,7 +43,7 @@ export default function HeroSection() {
         {/* Subheading */}
         <p
           className="font-body text-lg md:text-xl max-w-2xl mb-12 leading-relaxed"
-          style={{ color: '#707072' }}
+          style={{ color: '#9A9A9C' }}
         >
           CHRONOS watches your data pipelines, detects failures, and synthesizes
           root cause analyses in seconds — automatically.
@@ -85,7 +85,7 @@ export default function HeroSection() {
             >
               <span
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: '#0057FF' }}
+                style={{ backgroundColor: '#5B8AFF' }}
               />
               <span
                 className="text-sm tracking-widest uppercase font-body"

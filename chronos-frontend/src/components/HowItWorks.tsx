@@ -30,7 +30,7 @@ export default function HowItWorks() {
         {/* Section label */}
         <p
           className="text-xs tracking-[0.3em] uppercase mb-6 font-body"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           How It Works
         </p>
@@ -55,7 +55,7 @@ export default function HowItWorks() {
               <div className="md:col-span-2">
                 <span
                   className="font-heading text-8xl md:text-9xl leading-none select-none"
-                  style={{ color: idx === 0 ? '#0057FF' : '#111111' }}
+                  style={{ color: idx === 0 ? '#5B8AFF' : '#111111' }}
                 >
                   {step.number}
                 </span>
@@ -71,7 +71,7 @@ export default function HowItWorks() {
                 </h3>
                 <p
                   className="font-body text-base leading-relaxed"
-                  style={{ color: '#707072', maxWidth: '420px' }}
+                  style={{ color: '#4A4A4C', maxWidth: '420px' }}
                 >
                   {step.body}
                 </p>
@@ -83,7 +83,7 @@ export default function HowItWorks() {
                   className="font-body text-xs tracking-widest uppercase px-4 py-2 rounded-full"
                   style={{
                     backgroundColor: '#F5F5F5',
-                    color: '#707072',
+                    color: '#4A4A4C',
                     letterSpacing: '0.15em',
                   }}
                 >

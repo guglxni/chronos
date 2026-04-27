@@ -132,7 +132,7 @@ function LiveDemoSection() {
         {/* Section label */}
         <p
           className="text-xs tracking-[0.3em] uppercase mb-6 font-body"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           Interactive Demo
         </p>
@@ -147,7 +147,7 @@ function LiveDemoSection() {
         </h2>
         <p
           className="font-body text-base mb-16 max-w-xl"
-          style={{ color: '#707072' }}
+          style={{ color: '#4A4A4C' }}
         >
           Pick a pre-seeded failure scenario and watch the agentic investigation pipeline run live.
         </p>
@@ -164,7 +164,7 @@ function LiveDemoSection() {
             >
               Try It Live
             </h3>
-            <p className="font-body text-sm mb-8" style={{ color: '#707072' }}>
+            <p className="font-body text-sm mb-8" style={{ color: '#4A4A4C' }}>
               Select a failure scenario and watch CHRONOS investigate in real time.
             </p>
 
@@ -180,7 +180,7 @@ function LiveDemoSection() {
                     className="w-full text-left p-4 transition-all"
                     style={{
                       backgroundColor: '#F5F5F5',
-                      border: `2px solid ${isSelected ? '#0057FF' : 'transparent'}`,
+                      border: `2px solid ${isSelected ? '#5B8AFF' : 'transparent'}`,
                       cursor: isRunning ? 'not-allowed' : 'pointer',
                       opacity: isRunning && !isSelected ? 0.5 : 1,
                     }}
@@ -192,15 +192,15 @@ function LiveDemoSection() {
                       <span
                         className="font-body text-xs px-2 py-0.5 rounded flex-shrink-0"
                         style={{
-                          backgroundColor: (SEVERITY_COLORS[scenario.severity] ?? '#707072') + '20',
-                          color: SEVERITY_COLORS[scenario.severity] ?? '#707072',
+                          backgroundColor: (SEVERITY_COLORS[scenario.severity] ?? '#4A4A4C') + '20',
+                          color: SEVERITY_COLORS[scenario.severity] ?? '#4A4A4C',
                         }}
                       >
                         {scenario.severity}
                       </span>
                     </div>
-                    <p className="font-mono text-xs mb-1" style={{ color: '#707072' }}>{scenario.table}</p>
-                    <p className="font-body text-xs" style={{ color: '#707072' }}>{scenario.desc}</p>
+                    <p className="font-mono text-xs mb-1" style={{ color: '#4A4A4C' }}>{scenario.table}</p>
+                    <p className="font-body text-xs" style={{ color: '#4A4A4C' }}>{scenario.desc}</p>
                   </button>
                 );
               })}
@@ -244,7 +244,7 @@ function LiveDemoSection() {
               <p
                 className="font-body text-xs animate-fade-in mt-4"
                 style={{
-                  color: phase === 'error' ? '#ef4444' : '#707072',
+                  color: phase === 'error' ? '#ef4444' : '#4A4A4C',
                   padding: '10px 16px',
                   backgroundColor: phase === 'error' ? '#ef444410' : '#F5F5F5',
                   borderRadius: '8px',
@@ -261,7 +261,7 @@ function LiveDemoSection() {
             >
               <p
                 className="font-body text-xs tracking-widest uppercase mb-4"
-                style={{ color: '#707072', letterSpacing: '0.12em' }}
+                style={{ color: '#4A4A4C', letterSpacing: '0.12em' }}
               >
                 What happens
               </p>
@@ -279,7 +279,7 @@ function LiveDemoSection() {
                   </span>
                   <span
                     className="font-mono text-xs pt-0.5"
-                    style={{ color: '#707072' }}
+                    style={{ color: '#4A4A4C' }}
                   >
                     {step}
                   </span>
@@ -307,13 +307,13 @@ function LiveDemoSection() {
                 className="p-4 flex items-center justify-between"
                 style={{ backgroundColor: '#111111' }}
               >
-                <span className="font-body text-xs" style={{ color: '#707072' }}>
+                <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>
                   Full incident report
                 </span>
                 <Link
                   to={`/report/${incidentId}`}
                   className="font-body text-xs"
-                  style={{ color: '#0057FF', textDecoration: 'none' }}
+                  style={{ color: '#5B8AFF', textDecoration: 'none' }}
                 >
                   View Full Report →
                 </Link>
@@ -350,7 +350,7 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
       <div className="max-w-6xl mx-auto">
         <p
           className="text-xs tracking-[0.3em] uppercase mb-6 font-body"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           API Reference
         </p>
@@ -365,7 +365,7 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
         </h2>
         <p
           className="font-body text-base mb-14 max-w-xl"
-          style={{ color: '#707072' }}
+          style={{ color: '#4A4A4C' }}
         >
           Any system that can fire a webhook can trigger CHRONOS. No SDK required.
         </p>
@@ -387,7 +387,7 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }} />
             <span
               className="ml-3 font-mono text-xs"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               bash
             </span>
@@ -405,9 +405,9 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
                   <span
                     style={{
                       color: isComment
-                        ? '#707072'
+                        ? '#808082'
                         : line.includes('-H') || line.includes('-d') || line.includes('-X')
-                        ? '#0057FF'
+                        ? '#5B8AFF'
                         : isKey
                         ? '#F5F5F5'
                         : '#F5F5F5',
@@ -445,8 +445,8 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
                 <span
                   className="font-mono text-xs px-2 py-0.5 rounded"
                   style={{
-                    backgroundColor: method === 'POST' ? '#0057FF20' : '#22c55e20',
-                    color: method === 'POST' ? '#0057FF' : '#22c55e',
+                    backgroundColor: method === 'POST' ? '#5B8AFF20' : '#22c55e20',
+                    color: method === 'POST' ? '#5B8AFF' : '#22c55e',
                   }}
                 >
                   {method}
@@ -455,7 +455,7 @@ curl -X POST https://chronos-api-0e8635fe890d.herokuapp.com/api/v1/webhooks/open
               <p className="font-mono text-sm mb-2" style={{ color: '#111111' }}>
                 {path}
               </p>
-              <p className="font-body text-xs" style={{ color: '#707072' }}>
+              <p className="font-body text-xs" style={{ color: '#4A4A4C' }}>
                 {desc}
               </p>
             </div>
@@ -481,7 +481,7 @@ function Footer() {
             >
               CHRONOS
             </h4>
-            <p className="font-body text-xs" style={{ color: '#707072' }}>
+            <p className="font-body text-xs" style={{ color: '#9A9A9C' }}>
               Built with LangGraph, Graphiti, OpenMetadata
             </p>
           </div>
@@ -492,7 +492,7 @@ function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className="font-body text-sm transition-colors hover:text-white"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               GitHub
             </a>
@@ -501,7 +501,7 @@ function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className="font-body text-sm transition-colors hover:text-white"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               API Docs
             </a>
@@ -510,7 +510,7 @@ function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className="font-body text-sm transition-colors hover:text-white"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               Live API
             </a>
@@ -521,10 +521,10 @@ function Footer() {
           className="mt-12 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
           style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <p className="font-body text-xs" style={{ color: '#404040' }}>
+          <p className="font-body text-xs" style={{ color: '#686868' }}>
             © 2026 CHRONOS. AI-powered data incident investigation.
           </p>
-          <p className="font-body text-xs" style={{ color: '#404040' }}>
+          <p className="font-body text-xs" style={{ color: '#686868' }}>
             LangGraph · Graphiti · FalkorDB · LiteLLM · Groq
           </p>
         </div>

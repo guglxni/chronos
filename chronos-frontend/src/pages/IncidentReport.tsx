@@ -62,7 +62,7 @@ export default function IncidentReport() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
         <div className="text-center">
           <div className="w-8 h-8 rounded-full border-2 border-chronos-blue border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="font-body text-sm" style={{ color: '#707072' }}>Loading incident report…</p>
+          <p className="font-body text-sm" style={{ color: '#4A4A4C' }}>Loading incident report…</p>
         </div>
       </div>
     );
@@ -73,7 +73,7 @@ export default function IncidentReport() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
         <div className="text-center max-w-md">
           <h2 className="font-heading mb-4" style={{ fontSize: '32px', color: '#111111' }}>Report not found</h2>
-          <p className="font-body text-sm mb-6" style={{ color: '#707072' }}>{error ?? 'Incident could not be loaded.'}</p>
+          <p className="font-body text-sm mb-6" style={{ color: '#4A4A4C' }}>{error ?? 'Incident could not be loaded.'}</p>
           <Link to="/" className="chronos-btn-primary">← Back to CHRONOS</Link>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function IncidentReport() {
         <Link to="/" className="font-heading text-white mr-auto" style={{ fontSize: '20px', textDecoration: 'none' }}>
           CHRONOS
         </Link>
-        <span className="font-body text-xs" style={{ color: '#707072' }}>Incident Report</span>
+        <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>Incident Report</span>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-16">
@@ -97,7 +97,7 @@ export default function IncidentReport() {
         <Link
           to="/"
           className="font-body text-xs tracking-widest uppercase mb-10 inline-flex items-center gap-2"
-          style={{ color: '#707072', letterSpacing: '0.12em', textDecoration: 'none' }}
+          style={{ color: '#4A4A4C', letterSpacing: '0.12em', textDecoration: 'none' }}
         >
           ← Back to Demo
         </Link>
@@ -106,13 +106,13 @@ export default function IncidentReport() {
         <div className="p-8 mb-6" style={{ backgroundColor: '#111111' }}>
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
-              <p className="font-body text-xs tracking-widest uppercase mb-2" style={{ color: '#707072', letterSpacing: '0.12em' }}>
+              <p className="font-body text-xs tracking-widest uppercase mb-2" style={{ color: '#4A4A4C', letterSpacing: '0.12em' }}>
                 Incident Report
               </p>
               <h1 className="font-heading text-white leading-tight" style={{ fontSize: 'clamp(24px, 4vw, 40px)' }}>
                 {report.affected_entity_fqn}
               </h1>
-              <p className="font-body text-sm mt-2" style={{ color: '#707072' }}>
+              <p className="font-body text-sm mt-2" style={{ color: '#4A4A4C' }}>
                 {report.test_name} · Detected {fmt(report.detected_at)}
               </p>
             </div>
@@ -141,7 +141,7 @@ export default function IncidentReport() {
               { label: 'Downstream', value: String(report.affected_downstream?.length ?? 0) + ' tables' },
             ].map(({ label, value }) => (
               <div key={label}>
-                <p className="font-body text-xs mb-1" style={{ color: '#707072', letterSpacing: '0.08em' }}>{label}</p>
+                <p className="font-body text-xs mb-1" style={{ color: '#4A4A4C', letterSpacing: '0.08em' }}>{label}</p>
                 <p className="font-body text-sm font-medium" style={{ color: '#F5F5F5' }}>{value}</p>
               </div>
             ))}
@@ -151,7 +151,7 @@ export default function IncidentReport() {
         {/* Root Cause */}
         <div className="p-8 mb-6" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <p className="font-body text-xs tracking-widest uppercase" style={{ color: '#0057FF', letterSpacing: '0.12em' }}>
+            <p className="font-body text-xs tracking-widest uppercase" style={{ color: '#5B8AFF', letterSpacing: '0.12em' }}>
               Probable Root Cause
             </p>
             <ConfidenceBadge confidence={report.confidence ?? 0} />
@@ -166,12 +166,12 @@ export default function IncidentReport() {
             {report.probable_root_cause}
           </h2>
           {report.failure_message && (
-            <p className="font-mono text-xs mt-4 p-3 rounded" style={{ backgroundColor: '#F5F5F5', color: '#707072' }}>
+            <p className="font-mono text-xs mt-4 p-3 rounded" style={{ backgroundColor: '#F5F5F5', color: '#4A4A4C' }}>
               {report.failure_message}
             </p>
           )}
           {report.business_impact_reasoning && (
-            <p className="font-body text-sm mt-4 leading-relaxed" style={{ color: '#707072' }}>
+            <p className="font-body text-sm mt-4 leading-relaxed" style={{ color: '#4A4A4C' }}>
               {report.business_impact_reasoning}
             </p>
           )}
@@ -180,7 +180,7 @@ export default function IncidentReport() {
         {/* Recommended Actions */}
         {(report.recommended_actions?.length ?? 0) > 0 && (
           <div className="p-8 mb-6" style={{ backgroundColor: '#FFFFFF' }}>
-            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#0057FF', letterSpacing: '0.12em' }}>
+            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#5B8AFF', letterSpacing: '0.12em' }}>
               Recommended Actions
             </p>
             <div className="space-y-3">
@@ -188,13 +188,13 @@ export default function IncidentReport() {
                 <div
                   key={i}
                   className="flex gap-4 items-start p-4"
-                  style={{ backgroundColor: '#F5F5F5', borderLeft: `3px solid ${PRIORITY_COLORS[action.priority] ?? '#707072'}` }}
+                  style={{ backgroundColor: '#F5F5F5', borderLeft: `3px solid ${PRIORITY_COLORS[action.priority] ?? '#4A4A4C'}` }}
                 >
                   <span
                     className="font-body text-xs px-2 py-0.5 rounded flex-shrink-0 uppercase tracking-wider"
                     style={{
-                      backgroundColor: (PRIORITY_COLORS[action.priority] ?? '#707072') + '20',
-                      color: PRIORITY_COLORS[action.priority] ?? '#707072',
+                      backgroundColor: (PRIORITY_COLORS[action.priority] ?? '#4A4A4C') + '20',
+                      color: PRIORITY_COLORS[action.priority] ?? '#4A4A4C',
                     }}
                   >
                     {action.priority.replace('_', ' ')}
@@ -202,7 +202,7 @@ export default function IncidentReport() {
                   <div className="flex-1 min-w-0">
                     <p className="font-body text-sm" style={{ color: '#111111' }}>{action.description}</p>
                     {action.owner && (
-                      <p className="font-body text-xs mt-1" style={{ color: '#707072' }}>Owner: {action.owner}</p>
+                      <p className="font-body text-xs mt-1" style={{ color: '#4A4A4C' }}>Owner: {action.owner}</p>
                     )}
                   </div>
                 </div>
@@ -214,7 +214,7 @@ export default function IncidentReport() {
         {/* Downstream Impact */}
         {(report.affected_downstream?.length ?? 0) > 0 && (
           <div className="p-8 mb-6" style={{ backgroundColor: '#FFFFFF' }}>
-            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#0057FF', letterSpacing: '0.12em' }}>
+            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#5B8AFF', letterSpacing: '0.12em' }}>
               Downstream Impact — {report.affected_downstream.length} table{report.affected_downstream.length !== 1 ? 's' : ''} affected
             </p>
             <div className="space-y-2">
@@ -226,7 +226,7 @@ export default function IncidentReport() {
                 >
                   <div>
                     <p className="font-body text-sm" style={{ color: '#111111' }}>{asset.display_name || asset.fqn}</p>
-                    <p className="font-mono text-xs mt-0.5" style={{ color: '#707072' }}>{asset.fqn}</p>
+                    <p className="font-mono text-xs mt-0.5" style={{ color: '#4A4A4C' }}>{asset.fqn}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     {asset.tier && (
@@ -235,7 +235,7 @@ export default function IncidentReport() {
                       </span>
                     )}
                     {asset.owners?.[0] && (
-                      <span className="font-body text-xs" style={{ color: '#707072' }}>{asset.owners[0]}</span>
+                      <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>{asset.owners[0]}</span>
                     )}
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export default function IncidentReport() {
         {/* Investigation Timeline */}
         {(report.investigation_timeline?.length ?? 0) > 0 && (
           <div className="p-8 mb-6" style={{ backgroundColor: '#FFFFFF' }}>
-            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#0057FF', letterSpacing: '0.12em' }}>
+            <p className="font-body text-xs tracking-widest uppercase mb-6" style={{ color: '#5B8AFF', letterSpacing: '0.12em' }}>
               Investigation Timeline
             </p>
             <div className="space-y-2">
@@ -267,10 +267,10 @@ export default function IncidentReport() {
                     <p className="font-body text-sm font-medium mb-0.5" style={{ color: '#111111' }}>
                       {step.name.replace(/_/g, ' ')}
                     </p>
-                    <p className="font-body text-xs leading-relaxed" style={{ color: '#707072' }}>{step.summary}</p>
+                    <p className="font-body text-xs leading-relaxed" style={{ color: '#4A4A4C' }}>{step.summary}</p>
                   </div>
                   {step.duration_ms !== null && step.duration_ms !== undefined && (
-                    <span className="font-mono text-xs flex-shrink-0" style={{ color: '#707072' }}>
+                    <span className="font-mono text-xs flex-shrink-0" style={{ color: '#4A4A4C' }}>
                       {step.duration_ms}ms
                     </span>
                   )}
@@ -282,10 +282,10 @@ export default function IncidentReport() {
 
         {/* Meta footer */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-4" style={{ borderTop: '1px solid #E8E8E8' }}>
-          <p className="font-body text-xs" style={{ color: '#707072' }}>
+          <p className="font-body text-xs" style={{ color: '#4A4A4C' }}>
             CHRONOS v{report.agent_version} · {report.llm_model_used || 'LLM-powered'} · Completed {fmt(report.investigation_completed_at)}
           </p>
-          <Link to="/" className="font-body text-xs" style={{ color: '#0057FF', textDecoration: 'none' }}>
+          <Link to="/" className="font-body text-xs" style={{ color: '#5B8AFF', textDecoration: 'none' }}>
             Run another investigation →
           </Link>
         </div>

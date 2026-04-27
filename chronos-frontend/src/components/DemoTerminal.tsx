@@ -67,7 +67,7 @@ export default function DemoTerminal({ events, isConnected, error, isIdle }: Dem
         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
         <span
           className="ml-3 text-xs font-body tracking-widest uppercase"
-          style={{ color: '#707072', letterSpacing: '0.12em' }}
+          style={{ color: '#4A4A4C', letterSpacing: '0.12em' }}
         >
           chronos — investigation stream
         </span>
@@ -89,18 +89,18 @@ export default function DemoTerminal({ events, isConnected, error, isIdle }: Dem
       >
         {isIdle && events.length === 0 && (
           <div className="flex flex-col gap-1">
-            <span style={{ color: '#707072' }}>
-              <span style={{ color: '#0057FF' }}>chronos@live</span>
+            <span style={{ color: '#4A4A4C' }}>
+              <span style={{ color: '#5B8AFF' }}>chronos@live</span>
               <span style={{ color: '#ffffff60' }}> ~ </span>
               <span style={{ color: '#F5F5F5' }}>Waiting for investigation...</span>
             </span>
-            <span style={{ color: '#707072' }}>
+            <span style={{ color: '#4A4A4C' }}>
               Fill in the form and click{' '}
-              <span style={{ color: '#0057FF' }}>Run Investigation →</span>{' '}
+              <span style={{ color: '#5B8AFF' }}>Run Investigation →</span>{' '}
               to see CHRONOS in action.
             </span>
             <div style={{ marginTop: '8px' }}>
-              <span style={{ color: '#707072' }}>{'>'} </span>
+              <span style={{ color: '#4A4A4C' }}>{'>'} </span>
               <span className="terminal-cursor" />
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function DemoTerminal({ events, isConnected, error, isIdle }: Dem
             >
               <span
                 className="flex-shrink-0 w-5 text-center"
-                style={{ color: isComplete ? '#22c55e' : isConnectedEv ? '#22c55e' : '#0057FF' }}
+                style={{ color: isComplete ? '#22c55e' : isConnectedEv ? '#22c55e' : '#5B8AFF' }}
               >
                 {icon}
               </span>
@@ -148,7 +148,7 @@ export default function DemoTerminal({ events, isConnected, error, isIdle }: Dem
 
         {isConnected && (
           <div className="mt-1 flex gap-2 items-center">
-            <span style={{ color: '#0057FF' }}>›</span>
+            <span style={{ color: '#5B8AFF' }}>›</span>
             <span className="terminal-cursor" />
           </div>
         )}

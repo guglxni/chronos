@@ -8,7 +8,7 @@ const TOOLS = [
     symbol: '⚡',
     short: 'Kick off a full 10-step RCA pipeline for any failing entity. Returns immediately with an incident_id you can poll.',
     badge: 'Async',
-    badgeColor: '#0057FF',
+    badgeColor: '#5B8AFF',
   },
   {
     name: 'get_incident',
@@ -138,8 +138,8 @@ function ToolCard({ tool }: { tool: typeof TOOLS[number] }) {
         borderRadius: '4px',
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(0,87,255,0.5)';
-        (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(0,87,255,0.06)';
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(91,138,255,0.5)';
+        (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(91,138,255,0.06)';
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)';
@@ -150,7 +150,7 @@ function ToolCard({ tool }: { tool: typeof TOOLS[number] }) {
       <div className="flex items-start justify-between mb-5">
         <span
           className="font-heading text-2xl leading-none"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           {tool.symbol}
         </span>
@@ -177,7 +177,7 @@ function ToolCard({ tool }: { tool: typeof TOOLS[number] }) {
       {/* Description */}
       <p
         className="font-body text-sm leading-relaxed flex-1"
-        style={{ color: '#707072' }}
+        style={{ color: '#9A9A9C' }}
       >
         {tool.short}
       </p>
@@ -212,14 +212,14 @@ function CodeBlock({ snippetKey }: { snippetKey: SnippetKey }) {
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#ef4444' }} />
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#eab308' }} />
         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
-        <span className="ml-auto font-mono text-xs" style={{ color: '#404040' }}>
+        <span className="ml-auto font-mono text-xs" style={{ color: '#686868' }}>
           {snippetKey === 'claude' ? 'claude_desktop_config.json' : snippetKey === 'python' ? 'agent.py' : 'bash'}
         </span>
         <button
           onClick={handleCopy}
           className="font-body text-xs transition-colors px-2 py-0.5 rounded"
           style={{
-            color: copied ? '#22c55e' : '#707072',
+            color: copied ? '#22c55e' : '#9A9A9C',
             backgroundColor: copied ? 'rgba(34,197,94,0.1)' : 'transparent',
           }}
         >
@@ -241,7 +241,7 @@ function CodeBlock({ snippetKey }: { snippetKey: SnippetKey }) {
               key={i}
               className="block"
               style={{
-                color: isComment ? '#404040' : isKey ? '#0057FF' : isString ? '#F5F5F5' : '#E0E0E0',
+                color: isComment ? '#686868' : isKey ? '#5B8AFF' : isString ? '#F5F5F5' : '#E0E0E0',
               }}
             >
               {line || '​'}
@@ -279,7 +279,7 @@ export default function AgentSection() {
       <div
         className="absolute top-0 left-0 w-[600px] h-[600px] pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at top left, rgba(0,87,255,0.08) 0%, transparent 60%)',
+          background: 'radial-gradient(circle at top left, rgba(91,138,255,0.08) 0%, transparent 60%)',
         }}
       />
 
@@ -288,7 +288,7 @@ export default function AgentSection() {
         {/* ── Header ── */}
         <p
           className="text-xs tracking-[0.3em] uppercase mb-6 font-body"
-          style={{ color: '#0057FF' }}
+          style={{ color: '#5B8AFF' }}
         >
           Model Context Protocol · MCP
         </p>
@@ -307,7 +307,7 @@ export default function AgentSection() {
           <div>
             <p
               className="font-body text-base leading-relaxed mb-6"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               CHRONOS exposes a native MCP server — every investigation tool,
               lineage query, and monitoring hook available as a first-class
@@ -336,19 +336,19 @@ export default function AgentSection() {
         <div
           className="mb-12 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5"
           style={{
-            backgroundColor: 'rgba(0,87,255,0.07)',
-            border: '1px solid rgba(0,87,255,0.25)',
+            backgroundColor: 'rgba(91,138,255,0.07)',
+            border: '1px solid rgba(91,138,255,0.25)',
             borderRadius: '4px',
           }}
         >
           <div className="flex-1 min-w-0">
             <p
               className="font-body text-xs tracking-[0.2em] uppercase mb-1.5"
-              style={{ color: '#0057FF', letterSpacing: '0.15em' }}
+              style={{ color: '#5B8AFF', letterSpacing: '0.15em' }}
             >
               Agent Skill · one-command install
             </p>
-            <p className="font-body text-sm mb-3" style={{ color: '#707072' }}>
+            <p className="font-body text-sm mb-3" style={{ color: '#9A9A9C' }}>
               Drop <code className="font-mono px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#F5F5F5', fontSize: '0.85em' }}>/chronos</code> into any Claude Code session or MCP-compatible agent.
               Your agent calls CHRONOS tools within its own flow — not a separate agent, a tool harness.
             </p>
@@ -360,7 +360,7 @@ export default function AgentSection() {
                 display: 'inline-flex',
               }}
             >
-              <span className="font-mono text-xs" style={{ color: '#0057FF' }}>$</span>
+              <span className="font-mono text-xs" style={{ color: '#5B8AFF' }}>$</span>
               <span className="font-mono text-sm" style={{ color: '#F5F5F5' }}>npx skills add guglxni/chronos-skill</span>
             </div>
           </div>
@@ -371,16 +371,16 @@ export default function AgentSection() {
               rel="noopener noreferrer"
               className="font-body text-xs px-5 py-2.5 rounded-full text-center transition-all"
               style={{
-                backgroundColor: '#0057FF',
+                backgroundColor: '#5B8AFF',
                 color: '#FFFFFF',
                 textDecoration: 'none',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#003ED4'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#0057FF'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#5B8AFF'; }}
             >
               View Skill →
             </a>
-            <p className="font-mono text-xs text-center" style={{ color: '#404040' }}>
+            <p className="font-mono text-xs text-center" style={{ color: '#686868' }}>
               39 agents · global
             </p>
           </div>
@@ -393,7 +393,7 @@ export default function AgentSection() {
         >
           <p
             className="font-body text-xs tracking-[0.2em] uppercase"
-            style={{ color: '#404040', letterSpacing: '0.18em' }}
+            style={{ color: '#686868', letterSpacing: '0.18em' }}
           >
             7 tools · 3 resources
           </p>
@@ -408,23 +408,23 @@ export default function AgentSection() {
           <div
             className="p-6 flex flex-col justify-between"
             style={{
-              backgroundColor: 'rgba(0,87,255,0.06)',
-              border: '1px solid rgba(0,87,255,0.2)',
+              backgroundColor: 'rgba(91,138,255,0.06)',
+              border: '1px solid rgba(91,138,255,0.2)',
               borderRadius: '4px',
             }}
           >
             <span
               className="font-heading text-2xl leading-none mb-5 block"
-              style={{ color: '#0057FF' }}
+              style={{ color: '#5B8AFF' }}
             >
               ∷
             </span>
             <div>
-              <p className="font-body text-xs tracking-wider uppercase mb-4" style={{ color: '#0057FF', letterSpacing: '0.12em' }}>
+              <p className="font-body text-xs tracking-wider uppercase mb-4" style={{ color: '#5B8AFF', letterSpacing: '0.12em' }}>
                 Resources
               </p>
               {['chronos://health', 'chronos://incidents', 'chronos://incident/{id}'].map(r => (
-                <p key={r} className="font-mono text-xs mb-2" style={{ color: '#707072' }}>
+                <p key={r} className="font-mono text-xs mb-2" style={{ color: '#9A9A9C' }}>
                   {r}
                 </p>
               ))}
@@ -447,7 +447,7 @@ export default function AgentSection() {
             <div>
               <p
                 className="font-body text-xs tracking-[0.3em] uppercase mb-4"
-                style={{ color: '#0057FF', letterSpacing: '0.2em' }}
+                style={{ color: '#5B8AFF', letterSpacing: '0.2em' }}
               >
                 Autonomous Setup
               </p>
@@ -461,7 +461,7 @@ export default function AgentSection() {
               </h3>
               <p
                 className="font-body text-sm leading-relaxed mb-8"
-                style={{ color: '#707072' }}
+                style={{ color: '#9A9A9C' }}
               >
                 CHRONOS publishes a machine-readable{' '}
                 <code
@@ -498,15 +498,15 @@ export default function AgentSection() {
                     <span
                       className="font-heading text-xs w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                       style={{
-                        backgroundColor: 'rgba(0,87,255,0.15)',
-                        color: '#0057FF',
+                        backgroundColor: 'rgba(91,138,255,0.15)',
+                        color: '#5B8AFF',
                         fontSize: '11px',
                       }}
                     >
                       {n}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-body text-xs mb-1.5" style={{ color: '#707072' }}>{label}</p>
+                      <p className="font-body text-xs mb-1.5" style={{ color: '#9A9A9C' }}>{label}</p>
                       <code
                         className="font-mono text-xs block px-3 py-2 rounded overflow-x-auto"
                         style={{
@@ -531,7 +531,7 @@ export default function AgentSection() {
               <div>
                 <p
                   className="font-body text-xs tracking-widest uppercase mb-4"
-                  style={{ color: '#404040', letterSpacing: '0.15em' }}
+                  style={{ color: '#9A9A9C', letterSpacing: '0.15em' }}
                 >
                   Required environment
                 </p>
@@ -553,16 +553,16 @@ export default function AgentSection() {
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: required ? '#0057FF' : '#404040' }}
+                        style={{ backgroundColor: required ? '#5B8AFF' : '#686868' }}
                       />
                       <span className="font-mono text-xs flex-1" style={{ color: '#F5F5F5' }}>{v}</span>
-                      <span className="font-body text-xs" style={{ color: '#404040' }}>{desc}</span>
+                      <span className="font-body text-xs" style={{ color: '#808082' }}>{desc}</span>
                       {!required && (
                         <span
                           className="font-body text-xs px-1.5 py-0.5 rounded"
                           style={{
                             backgroundColor: 'rgba(255,255,255,0.04)',
-                            color: '#404040',
+                            color: '#686868',
                             fontSize: '10px',
                           }}
                         >
@@ -578,18 +578,18 @@ export default function AgentSection() {
               <div
                 className="p-5 flex items-center justify-between gap-4 rounded"
                 style={{
-                  backgroundColor: 'rgba(0,87,255,0.07)',
-                  border: '1px solid rgba(0,87,255,0.2)',
+                  backgroundColor: 'rgba(91,138,255,0.07)',
+                  border: '1px solid rgba(91,138,255,0.2)',
                 }}
               >
                 <div>
-                  <p className="font-body text-xs mb-1" style={{ color: '#0057FF' }}>
+                  <p className="font-body text-xs mb-1" style={{ color: '#5B8AFF' }}>
                     Agent Discovery Card
                   </p>
-                  <p className="font-mono text-xs" style={{ color: '#707072' }}>
+                  <p className="font-mono text-xs" style={{ color: '#9A9A9C' }}>
                     /.well-known/agent-card.json
                   </p>
-                  <p className="font-body text-xs mt-1" style={{ color: '#404040' }}>
+                  <p className="font-body text-xs mt-1" style={{ color: '#686868' }}>
                     Read this to auto-configure · then use MCP
                   </p>
                 </div>
@@ -599,12 +599,12 @@ export default function AgentSection() {
                   rel="noopener noreferrer"
                   className="font-body text-xs px-4 py-2 rounded-full flex-shrink-0 transition-all"
                   style={{
-                    backgroundColor: '#0057FF',
+                    backgroundColor: '#5B8AFF',
                     color: '#FFFFFF',
                     textDecoration: 'none',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#003ED4'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#0057FF'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#5B8AFF'; }}
                 >
                   View JSON →
                 </a>
@@ -619,7 +619,7 @@ export default function AgentSection() {
           <div>
             <p
               className="text-xs tracking-[0.3em] uppercase mb-4 font-body"
-              style={{ color: '#0057FF' }}
+              style={{ color: '#5B8AFF' }}
             >
               Quick Start
             </p>
@@ -633,7 +633,7 @@ export default function AgentSection() {
             </h3>
             <p
               className="font-body text-sm leading-relaxed mb-8"
-              style={{ color: '#707072' }}
+              style={{ color: '#9A9A9C' }}
             >
               Install via pip, configure your environment, and CHRONOS
               appears as a native tool in any MCP-compatible agent. Three
@@ -650,11 +650,11 @@ export default function AgentSection() {
                 border: '1px solid rgba(255,255,255,0.06)',
               }}
             >
-              <span className="font-mono text-xs" style={{ color: '#0057FF' }}>$</span>
+              <span className="font-mono text-xs" style={{ color: '#5B8AFF' }}>$</span>
               <span className="font-mono text-sm flex-1" style={{ color: '#F5F5F5' }}>
                 pip install chronos-data
               </span>
-              <span className="font-mono text-xs" style={{ color: '#404040' }}>then</span>
+              <span className="font-mono text-xs" style={{ color: '#686868' }}>then</span>
               <span className="font-mono text-sm" style={{ color: '#F5F5F5' }}>
                 chronos-mcp
               </span>
@@ -677,10 +677,10 @@ export default function AgentSection() {
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: '#0057FF' }}
+                    style={{ backgroundColor: '#5B8AFF' }}
                   />
                   <span className="font-mono text-xs" style={{ color: '#F5F5F5' }}>{label}</span>
-                  <span className="font-body text-xs" style={{ color: '#404040' }}>{desc}</span>
+                  <span className="font-body text-xs" style={{ color: '#686868' }}>{desc}</span>
                 </div>
               ))}
             </div>
@@ -704,7 +704,7 @@ export default function AgentSection() {
                   onClick={() => setActiveTab(key)}
                   className="font-body text-xs px-3 py-2 rounded transition-all duration-150"
                   style={{
-                    color: activeTab === key ? '#F5F5F5' : '#404040',
+                    color: activeTab === key ? '#F5F5F5' : '#808082',
                     backgroundColor: activeTab === key ? 'rgba(255,255,255,0.07)' : 'transparent',
                     border: 'none',
                     cursor: 'pointer',
@@ -722,7 +722,7 @@ export default function AgentSection() {
         <div
           className="relative overflow-hidden p-10 md:p-16"
           style={{
-            backgroundColor: '#0057FF',
+            backgroundColor: '#5B8AFF',
             borderRadius: '4px',
           }}
         >
@@ -804,10 +804,10 @@ export default function AgentSection() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
         >
           <div>
-            <p className="font-body text-sm mb-1" style={{ color: '#707072' }}>
+            <p className="font-body text-sm mb-1" style={{ color: '#9A9A9C' }}>
               Production-ready · MCP 1.x · Python 3.11+
             </p>
-            <p className="font-body text-xs" style={{ color: '#404040' }}>
+            <p className="font-body text-xs" style={{ color: '#686868' }}>
               0 CVE in the MCP transport layer · HMAC-validated webhooks · SecretStr for all credentials
             </p>
           </div>
@@ -826,12 +826,12 @@ export default function AgentSection() {
               rel="noopener noreferrer"
               className="font-body text-sm flex items-center gap-2 px-6 py-3 rounded-full transition-colors"
               style={{
-                color: '#707072',
+                color: '#9A9A9C',
                 border: '1.5px solid rgba(255,255,255,0.1)',
                 borderRadius: '30px',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#F5F5F5'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#707072'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#9A9A9C'; }}
             >
               Discovery Card →
             </a>
@@ -841,12 +841,12 @@ export default function AgentSection() {
               rel="noopener noreferrer"
               className="font-body text-sm flex items-center gap-2 px-6 py-3 rounded-full transition-colors"
               style={{
-                color: '#707072',
+                color: '#9A9A9C',
                 border: '1.5px solid rgba(255,255,255,0.1)',
                 borderRadius: '30px',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#F5F5F5'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#707072'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#9A9A9C'; }}
             >
               Agent Skill (GitHub) →
             </a>

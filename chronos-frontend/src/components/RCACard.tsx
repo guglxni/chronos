@@ -61,10 +61,10 @@ export default function RCACard({ report }: RCACardProps) {
         style={{ backgroundColor: '#111111' }}
       >
         <div>
-          <p className="font-body text-xs tracking-widest uppercase mb-1" style={{ color: '#0057FF' }}>
+          <p className="font-body text-xs tracking-widest uppercase mb-1" style={{ color: '#5B8AFF' }}>
             Root Cause Analysis
           </p>
-          <p className="font-body text-xs" style={{ color: '#707072' }}>
+          <p className="font-body text-xs" style={{ color: '#4A4A4C' }}>
             {report.incident_id}
             {duration && <span className="ml-3">· {duration}</span>}
           </p>
@@ -77,7 +77,7 @@ export default function RCACard({ report }: RCACardProps) {
         <div>
           <p
             className="font-body text-xs tracking-widest uppercase mb-3"
-            style={{ color: '#707072', letterSpacing: '0.15em' }}
+            style={{ color: '#4A4A4C', letterSpacing: '0.15em' }}
           >
             Probable Root Cause
           </p>
@@ -121,7 +121,7 @@ export default function RCACard({ report }: RCACardProps) {
           <div>
             <p
               className="font-body text-xs tracking-widest uppercase mb-4"
-              style={{ color: '#707072', letterSpacing: '0.15em' }}
+              style={{ color: '#4A4A4C', letterSpacing: '0.15em' }}
             >
               Evidence Chain
             </p>
@@ -132,7 +132,7 @@ export default function RCACard({ report }: RCACardProps) {
                   <div className="flex flex-col items-center flex-shrink-0 mt-1">
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: '#0057FF' }}
+                      style={{ backgroundColor: '#5B8AFF' }}
                     />
                     {i < Math.min(report.evidence_chain.length, 5) - 1 && (
                       <div
@@ -145,12 +145,12 @@ export default function RCACard({ report }: RCACardProps) {
                     <div className="flex items-center gap-2 mb-0.5">
                       <span
                         className="font-body text-xs uppercase tracking-wider"
-                        style={{ color: '#0057FF' }}
+                        style={{ color: '#5B8AFF' }}
                       >
                         {ev.source}
                       </span>
                       <span className="font-body text-xs" style={{ color: '#E8E8E8' }}>·</span>
-                      <span className="font-body text-xs" style={{ color: '#707072' }}>
+                      <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>
                         {Math.round(ev.confidence * 100)}% conf.
                       </span>
                     </div>
@@ -169,7 +169,7 @@ export default function RCACard({ report }: RCACardProps) {
           <div>
             <p
               className="font-body text-xs tracking-widest uppercase mb-4"
-              style={{ color: '#707072', letterSpacing: '0.15em' }}
+              style={{ color: '#4A4A4C', letterSpacing: '0.15em' }}
             >
               Recommended Actions
             </p>
@@ -197,7 +197,7 @@ export default function RCACard({ report }: RCACardProps) {
                       {action.owner && (
                         <>
                           <span className="font-body text-xs" style={{ color: '#E8E8E8' }}>·</span>
-                          <span className="font-body text-xs" style={{ color: '#707072' }}>
+                          <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>
                             {action.owner}
                           </span>
                         </>
@@ -218,7 +218,7 @@ export default function RCACard({ report }: RCACardProps) {
           <div>
             <p
               className="font-body text-xs tracking-widest uppercase mb-4"
-              style={{ color: '#707072', letterSpacing: '0.15em' }}
+              style={{ color: '#4A4A4C', letterSpacing: '0.15em' }}
             >
               Downstream Impact ({report.affected_downstream.length} assets)
             </p>
@@ -240,7 +240,7 @@ export default function RCACard({ report }: RCACardProps) {
               {report.affected_downstream.length > 8 && (
                 <span
                   className="font-body text-xs px-3 py-1.5 rounded-full"
-                  style={{ backgroundColor: '#F5F5F5', color: '#707072' }}
+                  style={{ backgroundColor: '#F5F5F5', color: '#4A4A4C' }}
                 >
                   +{report.affected_downstream.length - 8} more
                 </span>
@@ -261,7 +261,7 @@ export default function RCACard({ report }: RCACardProps) {
           ].map(({ label, value }) =>
             value ? (
               <div key={label} className="flex items-center gap-1.5">
-                <span className="font-body text-xs" style={{ color: '#707072' }}>{label}</span>
+                <span className="font-body text-xs" style={{ color: '#4A4A4C' }}>{label}</span>
                 <span
                   className="font-body text-xs px-2 py-0.5 rounded"
                   style={{ backgroundColor: '#F5F5F5', color: '#111111', fontFamily: 'monospace' }}

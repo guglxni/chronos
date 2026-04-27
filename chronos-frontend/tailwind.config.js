@@ -19,10 +19,10 @@ export default {
         },
         // Nike-inspired CHRONOS design system
         chronos: {
-          blue: '#0057FF',
+          blue: '#5B8AFF',
           black: '#111111',
           gray: '#F5F5F5',
-          secondary: '#707072',
+          secondary: '#4A4A4C',
           // Legacy sky-* compat shim
           50:  '#f0f9ff',
           100: '#e0f2fe',

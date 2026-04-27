@@ -5,6 +5,7 @@ import { Activity, LayoutDashboard, Settings as SettingsIcon, Zap, Sparkles } fr
 import clsx from 'clsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
+import SystemStatusBadge from './components/SystemStatusBadge';
 import Tooltip from './components/Tooltip';
 import { api } from './lib/api';
 
@@ -12,21 +13,51 @@ class ChunkErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean }
 > {
+  private static RELOAD_KEY = 'chronos_chunk_reload';
+
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
+
   static getDerivedStateFromError() { return { hasError: true }; }
+
+  componentDidMount() {
+    // Successfully mounted — clear the reload guard so future errors can auto-reload again
+    sessionStorage.removeItem(ChunkErrorBoundary.RELOAD_KEY);
+  }
+
+  componentDidCatch(error: Error) {
+    const isChunkError =
+      error.message.includes('text/html') ||
+      error.message.includes('MIME type') ||
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError';
+
+    if (isChunkError) {
+      const alreadyRetried = sessionStorage.getItem(ChunkErrorBoundary.RELOAD_KEY);
+      if (!alreadyRetried) {
+        sessionStorage.setItem(ChunkErrorBoundary.RELOAD_KEY, '1');
+        window.location.reload();
+        return;
+      }
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '4rem', textAlign: 'center', fontFamily: 'monospace' }}>
-          <p style={{ color: '#ef4444', marginBottom: '1rem' }}>New version deployed.</p>
+          <p style={{ color: '#ef4444', marginBottom: '1rem' }}>New version deployed — please reload.</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              sessionStorage.removeItem(ChunkErrorBoundary.RELOAD_KEY);
+              window.location.reload();
+            }}
             style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}
           >
-            Reload to continue →
+            Reload →
           </button>
         </div>
       );
@@ -75,28 +106,28 @@ function DemoNav() {
         <a
           href="#how-it-works"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           How It Works
         </a>
         <a
           href="#live-demo"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           Live Demo
         </a>
         <a
           href="#architecture"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           Architecture
         </a>
         <a
           href="#for-agents"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           For Agents
         </a>
@@ -105,7 +136,7 @@ function DemoNav() {
           target="_blank"
           rel="noopener noreferrer"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           View on GitHub
         </a>
@@ -114,19 +145,22 @@ function DemoNav() {
           target="_blank"
           rel="noopener noreferrer"
           className="font-body text-sm transition-colors hover:text-white"
-          style={{ color: '#707072', textDecoration: 'none' }}
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
         >
           API Docs
         </a>
       </div>
 
-      <a
-        href="#live-demo"
-        className="chronos-btn-black text-sm px-5 py-2.5"
-        style={{ fontSize: '13px' }}
-      >
-        Try Demo →
-      </a>
+      <div className="flex items-center gap-3">
+        <SystemStatusBadge darkMode />
+        <a
+          href="#live-demo"
+          className="chronos-btn-black text-sm px-5 py-2.5"
+          style={{ fontSize: '13px' }}
+        >
+          Try Demo →
+        </a>
+      </div>
     </nav>
   );
 }
@@ -181,6 +215,7 @@ function DashboardNav() {
 
       {/* Right-side indicators */}
       <div className="flex items-center gap-3 text-xs text-gray-400">
+        <SystemStatusBadge darkMode />
         {api.isDemoMode() && (
           <Tooltip
             content="This deployment is running against fixture data so the UI works without a live backend. Trigger and acknowledge actions mutate in-memory state only."

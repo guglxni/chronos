@@ -124,8 +124,13 @@ async def add_episode(
     name: str,
     content: str,
     source_type: str = "json",
+    reference_time: datetime | None = None,
 ) -> dict[str, Any]:
-    """Add an episode to the knowledge graph."""
+    """Add an episode to the knowledge graph.
+
+    ``reference_time`` defaults to "now" but can be set to a past timestamp
+    for backfilling historical episodes (e.g., the demo seeder).
+    """
     if not _is_configured():
         logger.debug("graphiti_client: not configured, skipping add_episode")
         return {}
@@ -145,7 +150,7 @@ async def add_episode(
             episode_body=content,
             source=ep_type,
             source_description="chronos",
-            reference_time=datetime.now(UTC),
+            reference_time=reference_time if reference_time is not None else datetime.now(UTC),
             group_id=group_id,
         )
         return {"status": "ok", "group_id": group_id, "name": name}

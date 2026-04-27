@@ -65,6 +65,20 @@
   - [x] Pipeline integration — Step 1 community context, Step 4 dbt+graphify enrichment, Step 5 code blast paths, Step 7 live graphify rendering
   - [x] State schema — added 5 new total=False fields (no migration needed)
   - [x] Tests — 38 new (tests/test_code_intel.py + test_nodes_code_intel.py + test_graphify_context.py); 0 regressions
+- [ ] Unit 9: Production Connection Layer (2026-04-27) — IN PROGRESS
+  - [x] Functional Design — aidlc-docs/units/U-09_production_hardening.md
+  - [ ] Code Generation — chronos/health/{types,probes,aggregator}.py + /api/v1/health/components endpoint
+  - [ ] Settings extensions — Falkor + OM JWT fields, startup warnings
+  - [ ] Demo seeder — chronos/demo/seeder.py + python -m chronos.demo seed CLI
+  - [ ] Frontend — SystemStatusBadge component in nav
+  - [ ] User runbook — SETUP.md + scripts/setup_production.sh
+  - [ ] Integration — verified live against Collate Free OM + FalkorDB Cloud
+- [ ] Unit 10: Temporal Innovation (Time-Travel + Predictive Risk)
+  - [x] Functional Design — aidlc-docs/units/U-10_temporal_innovation.md
+  - [ ] Backend — chronos/temporal/{lineage_at,lineage_diff,timeline}.py + chronos/risk/{scorer,factors}.py
+  - [ ] API endpoints — GET /api/v1/lineage/{fqn}?valid_at=, /diff, /api/v1/risk/at-risk, /risk/{fqn}/explain
+  - [ ] Frontend — TimeSlider, LineageDiffMode, AtRiskWidget, RiskExplainerModal
+  - [ ] Tests — risk scorer monotonicity + diff detection coverage
 - [ ] Build and Test (full stack integration) — Pending docker-compose up + integration verification
 
 ### OPERATIONS PHASE
