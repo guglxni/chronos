@@ -24,6 +24,9 @@ from chronos.health.types import ComponentState, ComponentStatus
 logger = logging.getLogger(__name__)
 
 _PROBE_TIMEOUT_SECONDS = 2.0
+# FalkorDB Cloud may sit in a different region — TLS handshake across
+# continents can take 1-2s on its own, leaving little margin for PING.
+_FALKORDB_TIMEOUT_SECONDS = 5.0
 
 
 def _now() -> datetime:
@@ -138,8 +141,8 @@ async def probe_falkordb() -> ComponentStatus:
             "host": host,
             "port": port,
             "password": password,
-            "socket_connect_timeout": _PROBE_TIMEOUT_SECONDS,
-            "socket_timeout": _PROBE_TIMEOUT_SECONDS,
+            "socket_connect_timeout": _FALKORDB_TIMEOUT_SECONDS,
+            "socket_timeout": _FALKORDB_TIMEOUT_SECONDS,
             "decode_responses": True,
         }
         if settings.falkordb_username:
@@ -148,7 +151,7 @@ async def probe_falkordb() -> ComponentStatus:
             kwargs["ssl"] = True
             kwargs["ssl_cert_reqs"] = None  # cloud uses wildcard cert
         client = aioredis.Redis(**kwargs)
-        pong = await asyncio.wait_for(client.ping(), timeout=_PROBE_TIMEOUT_SECONDS)
+        pong = await asyncio.wait_for(client.ping(), timeout=_FALKORDB_TIMEOUT_SECONDS)
         elapsed_ms = (time.perf_counter() - started) * 1000
         if pong:
             return ComponentStatus(
@@ -169,7 +172,7 @@ async def probe_falkordb() -> ComponentStatus:
         return ComponentStatus(
             name=name,
             state=ComponentState.DOWN,
-            detail=f"timeout after {_PROBE_TIMEOUT_SECONDS}s",
+            detail=f"timeout after {_FALKORDB_TIMEOUT_SECONDS}s",
             last_checked=_now(),
         )
     except Exception as exc:
@@ -214,8 +217,12 @@ async def probe_litellm() -> ComponentStatus:
             last_checked=_now(),
         )
 
-    # Try /health first, then fall back to /v1/models (Groq-style).
-    candidates = [f"{base}/health", f"{base}/v1/models"]
+    # If base already includes /v1 (e.g., Groq's https://api.groq.com/openai/v1),
+    # don't double it — hit /models directly. Otherwise try /health then /v1/models.
+    if base.endswith("/v1") or "/openai/v1" in base:
+        candidates = [f"{base}/models"]
+    else:
+        candidates = [f"{base}/health", f"{base}/v1/models"]
     started = time.perf_counter()
     last_status: int | None = None
     last_error: str | None = None
