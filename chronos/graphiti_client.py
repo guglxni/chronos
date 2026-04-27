@@ -76,7 +76,9 @@ async def _get_graphiti() -> Graphiti | None:
 
     try:
         from graphiti_core import Graphiti
-        from graphiti_core.driver.falkordb_driver import FalkorDBDriver
+        # Class is FalkorDriver (not FalkorDBDriver) — earlier import bug silently
+        # disabled Graphiti in production. Verified against graphiti-core>=0.3.
+        from graphiti_core.driver.falkordb_driver import FalkorDriver
         from graphiti_core.llm_client.config import LLMConfig
         from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
         from openai import AsyncOpenAI
@@ -85,11 +87,27 @@ async def _get_graphiti() -> Graphiti | None:
         return None
 
     password = secret_or_none(settings.falkordb_password)
-    driver = FalkorDBDriver(
-        host=settings.falkordb_host,
-        port=settings.falkordb_port,
-        password=password,
-    )
+    if settings.falkordb_tls:
+        # FalkorDB Cloud requires TLS; pre-build the FalkorDB client with ssl=True
+        # and inject via the driver's falkor_db= param (FalkorDriver's host/port
+        # constructor path doesn't expose TLS toggles).
+        from falkordb import FalkorDB
+        falkor_client = FalkorDB(
+            host=settings.falkordb_host,
+            port=settings.falkordb_port,
+            username=settings.falkordb_username or None,
+            password=password,
+            ssl=True,
+            ssl_cert_reqs="none",  # FalkorDB Cloud uses a wildcard cert
+        )
+        driver = FalkorDriver(falkor_db=falkor_client)
+    else:
+        driver = FalkorDriver(
+            host=settings.falkordb_host,
+            port=settings.falkordb_port,
+            username=settings.falkordb_username or None,
+            password=password,
+        )
 
     api_key = secret_or_none(settings.litellm_master_key) or "placeholder"
     openai_client = AsyncOpenAI(

@@ -134,14 +134,20 @@ async def probe_falkordb() -> ComponentStatus:
     started = time.perf_counter()
     client: aioredis.Redis | None = None
     try:
-        client = aioredis.Redis(
-            host=host,
-            port=port,
-            password=password,
-            socket_connect_timeout=_PROBE_TIMEOUT_SECONDS,
-            socket_timeout=_PROBE_TIMEOUT_SECONDS,
-            decode_responses=True,
-        )
+        kwargs: dict = {
+            "host": host,
+            "port": port,
+            "password": password,
+            "socket_connect_timeout": _PROBE_TIMEOUT_SECONDS,
+            "socket_timeout": _PROBE_TIMEOUT_SECONDS,
+            "decode_responses": True,
+        }
+        if settings.falkordb_username:
+            kwargs["username"] = settings.falkordb_username
+        if settings.falkordb_tls:
+            kwargs["ssl"] = True
+            kwargs["ssl_cert_reqs"] = None  # cloud uses wildcard cert
+        client = aioredis.Redis(**kwargs)
         pong = await asyncio.wait_for(client.ping(), timeout=_PROBE_TIMEOUT_SECONDS)
         elapsed_ms = (time.perf_counter() - started) * 1000
         if pong:
