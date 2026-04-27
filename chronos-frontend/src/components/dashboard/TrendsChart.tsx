@@ -15,7 +15,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   PERMISSION_CHANGE:    '#14b8a6',
   UPSTREAM_FAILURE:     '#0ea5e9',
   CONFIGURATION_CHANGE: '#84cc16',
-  UNKNOWN:              '#9A9A9C',
+  UNKNOWN:              '#7A7A7C',
 };
 
 function flatten(trends: TrendsResponse | null): Array<Record<string, number | string>> {
@@ -60,19 +60,19 @@ export default function TrendsChart({ trends, loading }: Props) {
         >
           Incidents Over Time
         </p>
-        <p className="font-body text-xs" style={{ color: '#808082' }}>
+        <p className="font-body text-xs" style={{ color: '#5A5A5C' }}>
           stacked by root cause
         </p>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="font-body text-sm" style={{ color: '#808082' }}>Loading…</p>
+          <p className="font-body text-sm" style={{ color: '#5A5A5C' }}>Loading…</p>
         </div>
       ) : isEmpty ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2">
           <p className="font-body text-sm" style={{ color: '#4A4A4C' }}>No incidents in this window</p>
-          <p className="font-mono text-xs" style={{ color: '#808082' }}>
+          <p className="font-mono text-xs" style={{ color: '#5A5A5C' }}>
             python -m chronos.demo seed --count 30
           </p>
         </div>
@@ -107,8 +107,8 @@ export default function TrendsChart({ trends, loading }: Props) {
                   type="monotone"
                   dataKey={cat}
                   stackId="1"
-                  stroke={CATEGORY_COLORS[cat] ?? '#9A9A9C'}
-                  fill={CATEGORY_COLORS[cat] ?? '#9A9A9C'}
+                  stroke={CATEGORY_COLORS[cat] ?? '#7A7A7C'}
+                  fill={CATEGORY_COLORS[cat] ?? '#7A7A7C'}
                   fillOpacity={0.7}
                 />
               ))}

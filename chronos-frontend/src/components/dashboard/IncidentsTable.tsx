@@ -57,7 +57,7 @@ export default function IncidentsTable({ incidents, loading }: Props) {
           <span
             className="inline-flex items-center gap-1.5 font-body text-xs px-2 py-0.5 rounded-full uppercase"
             style={{
-              backgroundColor: `${SEVERITY_COLORS[sev] ?? '#9A9A9C'}18`,
+              backgroundColor: `${SEVERITY_COLORS[sev] ?? '#7A7A7C'}18`,
               color: SEVERITY_COLORS[sev] ?? '#4A4A4C',
               letterSpacing: '0.08em',
               fontSize: '10px',
@@ -65,7 +65,7 @@ export default function IncidentsTable({ incidents, loading }: Props) {
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: SEVERITY_COLORS[sev] ?? '#9A9A9C' }}
+              style={{ backgroundColor: SEVERITY_COLORS[sev] ?? '#7A7A7C' }}
             />
             {sev}
           </span>
@@ -119,7 +119,7 @@ export default function IncidentsTable({ incidents, loading }: Props) {
       header: 'Duration',
       cell: ({ getValue }) => {
         const ms = Number(getValue() ?? 0);
-        if (!ms) return <span style={{ color: '#9A9A9C' }}>—</span>;
+        if (!ms) return <span style={{ color: '#7A7A7C' }}>—</span>;
         return <span className="font-mono text-xs" style={{ color: '#4A4A4C' }}>{(ms / 1000).toFixed(1)}s</span>;
       },
     },
@@ -182,11 +182,11 @@ export default function IncidentsTable({ incidents, loading }: Props) {
       </div>
 
       {loading ? (
-        <p className="font-body text-sm py-8 text-center" style={{ color: '#808082' }}>Loading…</p>
+        <p className="font-body text-sm py-8 text-center" style={{ color: '#5A5A5C' }}>Loading…</p>
       ) : filtered.length === 0 ? (
         <div className="py-12 text-center">
           <p className="font-body text-sm" style={{ color: '#4A4A4C' }}>No incidents match</p>
-          <p className="font-mono text-xs mt-2" style={{ color: '#808082' }}>
+          <p className="font-mono text-xs mt-2" style={{ color: '#5A5A5C' }}>
             python -m chronos.demo seed --count 30
           </p>
         </div>
@@ -204,7 +204,7 @@ export default function IncidentsTable({ incidents, loading }: Props) {
                       key={h.id}
                       onClick={h.column.getToggleSortingHandler()}
                       className="font-body text-xs tracking-[0.1em] uppercase pb-2 pr-4 cursor-pointer select-none"
-                      style={{ color: '#808082' }}
+                      style={{ color: '#5A5A5C' }}
                     >
                       {flexRender(h.column.columnDef.header, h.getContext())}
                       <span style={{ marginLeft: 4 }}>

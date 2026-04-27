@@ -14,7 +14,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   PERMISSION_CHANGE:    '#14b8a6',
   UPSTREAM_FAILURE:     '#0ea5e9',
   CONFIGURATION_CHANGE: '#84cc16',
-  UNKNOWN:              '#9A9A9C',
+  UNKNOWN:              '#7A7A7C',
 };
 
 function prettyCategory(cat: string): string {
@@ -50,11 +50,11 @@ export default function RootCauseDonut({ data, loading }: Props) {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="font-body text-sm" style={{ color: '#808082' }}>Loading…</p>
+          <p className="font-body text-sm" style={{ color: '#5A5A5C' }}>Loading…</p>
         </div>
       ) : slices.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="font-body text-sm" style={{ color: '#808082' }}>No data</p>
+          <p className="font-body text-sm" style={{ color: '#5A5A5C' }}>No data</p>
         </div>
       ) : (
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
@@ -70,7 +70,7 @@ export default function RootCauseDonut({ data, loading }: Props) {
                   stroke="none"
                 >
                   {slices.map((s) => (
-                    <Cell key={s.rawName} fill={CATEGORY_COLORS[s.rawName] ?? '#9A9A9C'} />
+                    <Cell key={s.rawName} fill={CATEGORY_COLORS[s.rawName] ?? '#7A7A7C'} />
                   ))}
                 </Pie>
                 <Tooltip
@@ -101,7 +101,7 @@ export default function RootCauseDonut({ data, loading }: Props) {
                 <div key={s.rawName} className="flex items-center gap-2 text-xs">
                   <span
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: CATEGORY_COLORS[s.rawName] ?? '#9A9A9C' }}
+                    style={{ backgroundColor: CATEGORY_COLORS[s.rawName] ?? '#7A7A7C' }}
                   />
                   <span className="font-body flex-1" style={{ color: '#111111' }}>
                     {s.name}

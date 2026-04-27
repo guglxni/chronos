@@ -56,17 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     setup_openllmetry()
 
-    # Auto-seed historical demo incidents when the store is empty so the
-    # dashboard has realistic data on first load. Idempotent — only runs
-    # once per dyno lifecycle, and only when the store starts empty.
-    try:
-        from chronos.core import incident_store
-        from chronos.demo.seeder import seed_incidents
-        if not incident_store.list_all():
-            seeded = await seed_incidents(count=30, seed=42)
-            logger.info("Auto-seeded %d historical demo incidents", seeded)
-    except Exception as exc:
-        logger.warning("Demo auto-seed skipped: %s", exc)
+    # Note: synthetic auto-seed removed — it produced fake IncidentReport
+    # objects that bypassed the agent pipeline. Use scripts/real_seed.py to
+    # populate the dashboard via real investigations against the live
+    # OpenMetadata catalog.
 
     yield
     await mcp_client.close()

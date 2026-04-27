@@ -76,7 +76,7 @@ export default function KpiStrip({ stats, loading }: Props) {
           >
             {c.value}
           </p>
-          <p className="font-body text-xs mt-2" style={{ color: '#808082' }}>
+          <p className="font-body text-xs mt-2" style={{ color: '#5A5A5C' }}>
             {c.hint}
           </p>
         </div>
