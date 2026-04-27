@@ -133,6 +133,13 @@ function DemoNav() {
           For Agents
         </a>
         <a
+          href="/dashboard"
+          className="font-body text-sm transition-colors hover:text-white"
+          style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}
+        >
+          Dashboard
+        </a>
+        <a
           href="https://github.com"
           target="_blank"
           rel="noopener noreferrer"

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
+import AtRiskWidget from '../components/dashboard/AtRiskWidget';
 import IncidentsTable from '../components/dashboard/IncidentsTable';
 import KpiStrip from '../components/dashboard/KpiStrip';
 import RangeSelector from '../components/dashboard/RangeSelector';
+import RiskExplainerModal from '../components/dashboard/RiskExplainerModal';
 import RootCauseDonut from '../components/dashboard/RootCauseDonut';
 import TrendsChart from '../components/dashboard/TrendsChart';
 import { api } from '../lib/api';
 import {
   type ByCategoryResponse,
   type DashboardRange,
+  type RiskScore,
   type StatsResponse,
   type TrendsResponse,
   dashboardApi,
@@ -22,6 +25,8 @@ export default function DashboardV2() {
   const [trends, setTrends] = useState<TrendsResponse | null>(null);
   const [byCategory, setByCategory] = useState<ByCategoryResponse | null>(null);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
+  const [atRisk, setAtRisk] = useState<RiskScore[]>([]);
+  const [selectedRisk, setSelectedRisk] = useState<RiskScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,17 +36,19 @@ export default function DashboardV2() {
 
     const loadAll = async () => {
       try {
-        const [s, t, c, list] = await Promise.all([
+        const [s, t, c, list, risk] = await Promise.all([
           dashboardApi.getStats(range),
           dashboardApi.getTrends(range, 'day'),
           dashboardApi.getByCategory(range),
           api.listIncidents({ limit: 100 }),
+          dashboardApi.getAtRisk(10, 30),
         ]);
         if (cancelled) return;
         setStats(s);
         setTrends(t);
         setByCategory(c);
         setIncidents(list.incidents);
+        setAtRisk(risk);
         setError(null);
         setLoading(false);
       } catch (err) {
@@ -100,6 +107,12 @@ export default function DashboardV2() {
         <div className="space-y-6">
           <KpiStrip stats={stats} loading={loading} />
 
+          <AtRiskWidget
+            scores={atRisk}
+            loading={loading}
+            onSelect={setSelectedRisk}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <TrendsChart trends={trends} loading={loading} />
@@ -112,6 +125,11 @@ export default function DashboardV2() {
           <IncidentsTable incidents={incidents} loading={loading} />
         </div>
       </div>
+
+      <RiskExplainerModal
+        score={selectedRisk}
+        onClose={() => setSelectedRisk(null)}
+      />
     </div>
   );
 }

@@ -53,6 +53,31 @@ async function fetchJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface RiskFactors {
+  incident_count_window: number;
+  severity_weighted: number;
+  unique_root_causes: number;
+  open_count: number;
+  days_since_last: number | null;
+}
+
+export interface RiskContribution {
+  factor: string;
+  raw_value: number;
+  contribution: number;
+  explanation: string;
+}
+
+export interface RiskScore {
+  entity_fqn: string;
+  score: number;
+  rank: number;
+  factors: RiskFactors;
+  contributions: RiskContribution[];
+  last_incident_at: string | null;
+  sparkline_30d: number[];
+}
+
 export const dashboardApi = {
   getStats: (range: DashboardRange = '24h') =>
     fetchJson<StatsResponse>(`/api/v1/incidents/stats?range=${range}`),
@@ -60,4 +85,8 @@ export const dashboardApi = {
     fetchJson<TrendsResponse>(`/api/v1/incidents/trends?range=${range}&bucket=${bucket}`),
   getByCategory: (range: DashboardRange = '7d') =>
     fetchJson<ByCategoryResponse>(`/api/v1/incidents/by-category?range=${range}`),
+  getAtRisk: (limit: number = 10, windowDays: number = 30) =>
+    fetchJson<RiskScore[]>(`/api/v1/risk/at-risk?limit=${limit}&window_days=${windowDays}`),
+  explainEntity: (entityFqn: string, windowDays: number = 30) =>
+    fetchJson<RiskScore>(`/api/v1/risk/${encodeURIComponent(entityFqn)}/explain?window_days=${windowDays}`),
 };

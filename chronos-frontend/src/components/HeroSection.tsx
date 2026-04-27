@@ -55,15 +55,21 @@ export default function HeroSection() {
             onClick={scrollToDemo}
             className="chronos-btn-primary text-base px-8 py-4"
           >
-            Run Live Demo
+            Run Live Demo →
           </button>
+          <a
+            href="/dashboard"
+            className="chronos-btn-outline text-base px-8 py-4"
+          >
+            Go to Dashboard →
+          </a>
           <a
             href="https://chronos-api-0e8635fe890d.herokuapp.com/docs"
             target="_blank"
             rel="noopener noreferrer"
             className="chronos-btn-outline text-base px-8 py-4"
           >
-            Read the Docs
+            Read the Docs →
           </a>
         </div>
 

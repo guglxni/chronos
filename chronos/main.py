@@ -26,6 +26,7 @@ from chronos.api.routes import (
     health_components,
     incidents,
     investigations,
+    risk,
     stats,
     webhooks,
     well_known,
@@ -216,6 +217,7 @@ app.include_router(investigations.router)
 app.include_router(stats.router)
 app.include_router(well_known.router)
 app.include_router(health_components.router)
+app.include_router(risk.router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
